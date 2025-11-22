@@ -1,86 +1,49 @@
-# Aplikasi Daftar Akun Mahasiswa
+# Aplikasi Pelacak Workout
 
-Aplikasi Android yang menampilkan daftar akun mahasiswa dalam bentuk card list. Ketika card diklik, aplikasi akan berpindah ke halaman detail yang menampilkan informasi lengkap mahasiswa.
+Aplikasi Android sederhana berbasis Jetpack Compose untuk mencatat sesi latihan harian. Pengguna dapat memilih jenis workout, menjalankan timer, menghitung kalori otomatis, menyimpan riwayat ke local storage, dan melihat statistik harian di dashboard utama.
 
-## Fitur yang Telah Dibuat
+## Fitur Utama
 
-### 1. Model Data (Account.kt)
-- **Account**: Data class yang berisi informasi mahasiswa
-  - ID
-  - Nama
-  - NIM
-  - Alamat
-  - Email
-  - Nomor Telepon
-  - Jurusan
-- **AccountData**: Object yang berisi sample data 5 mahasiswa
+- **Dashboard Harian**
+  - Ringkasan durasi total dan kalori yang terbakar hari ini.
+  - Streak harian berdasarkan hari berturut-turut yang memiliki catatan latihan.
+  - Grid pilihan workout (Yoga, Running, Stretching, HIIT, Cycling, Walking).
 
-### 2. Halaman Daftar Akun (AccountListScreen.kt)
-- Menampilkan daftar akun mahasiswa dalam bentuk cards
-- Setiap card menampilkan:
-  - Icon person
-  - Nama mahasiswa
-  - NIM
-  - Alamat (singkat)
-- Card dapat diklik untuk membuka detail
-- Menggunakan LazyColumn untuk performa optimal
+- **Halaman Timer**
+  - Menampilkan nama workout yang dipilih.
+  - Timer sederhana (count-up) dengan mode Start, Stop/Pause, Resume, dan Finish.
+  - Perhitungan kalori otomatis menggunakan rumus `MET × 3.5 × berat badan / 200 × durasi (menit)` dengan berat default 70kg.
+  - Menyimpan riwayat ke `SharedPreferences` dalam format JSON dan memperbarui dashboard setelah selesai.
 
-### 3. Halaman Detail Akun (AccountDetailScreen.kt)
-- Menampilkan informasi lengkap mahasiswa:
-  - Profile header dengan icon dan nama
-  - NIM
-  - Jurusan
-  - Alamat lengkap
-  - Email
-  - Nomor telepon
-- Tombol back untuk kembali ke daftar
-- Setiap informasi ditampilkan dengan icon yang sesuai
+## Arsitektur dan Teknologi
 
-### 4. Navigation (Screen.kt & AppNavigation.kt)
-- Navigation menggunakan Jetpack Compose Navigation
-- Dua route:
-  - AccountList: Halaman daftar
-  - AccountDetail: Halaman detail dengan parameter accountId
-- Navigation menggunakan NavController untuk berpindah halaman
+- **UI**: Jetpack Compose + Material 3
+- **Navigation**: Compose Navigation dengan dua layar utama (Dashboard dan Session)
+- **State Management**: `StateFlow` pada `WorkoutViewModel`
+- **Penyimpanan Lokal**: `SharedPreferences` untuk menyimpan riwayat latihan (tanpa backend)
 
-## Dependencies yang Ditambahkan
-
-Di `gradle/libs.versions.toml`:
-```toml
-navigationCompose = "2.7.7"
-androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
-```
-
-Di `app/build.gradle.kts`:
-```kotlin
-implementation(libs.androidx.navigation.compose)
-```
-
-## Cara Menjalankan
-
-1. **Sync Gradle**: Klik "Sync Now" pada notifikasi di Android Studio atau pilih File > Sync Project with Gradle Files
-2. **Build Project**: Build > Make Project
-3. **Run**: Jalankan aplikasi di emulator atau device
-
-## Struktur File yang Dibuat
+## Struktur Folder
 
 ```
 app/src/main/java/com/example/pamproject/
+├── data/
+│   └── WorkoutRepository.kt     # Baca/tulis riwayat workout di SharedPreferences
 ├── model/
-│   └── Account.kt                 # Data model dan sample data
-├── ui/
-│   └── screen/
-│       ├── AccountListScreen.kt   # Halaman daftar akun
-│       └── AccountDetailScreen.kt # Halaman detail akun
-└── navigation/
-    ├── Screen.kt                  # Definisi routes
-    └── AppNavigation.kt           # Setup navigation
+│   ├── Workout.kt               # Data class workout + daftar MET
+│   └── WorkoutLog.kt            # Catatan riwayat & ringkasan statistik harian
+├── navigation/
+│   ├── AppNavigation.kt         # Setup nav controller & routes
+│   └── Screen.kt                # Definisi route Dashboard & Session
+├── ui/screen/
+│   ├── DashboardScreen.kt       # Statistik harian + grid pilihan workout
+│   └── WorkoutSessionScreen.kt  # Timer sesi, kontrol start/pause/resume/finish
+└── viewmodel/
+    └── WorkoutViewModel.kt      # Logika timer, perhitungan kalori, dan statistik
 ```
 
-## Catatan
+## Menjalankan Proyek
 
-- Aplikasi ini menggunakan Material 3 Design
-- Sample data berisi 5 mahasiswa
-- Anda dapat menambahkan lebih banyak data di `AccountData.accountList`
-- Aplikasi sudah siap dijalankan setelah Gradle sync selesai
+1. **Sync Gradle** di Android Studio.
+2. **Build & Run** pada emulator atau perangkat fisik (minSdk 24).
+3. Pilih workout di Dashboard, jalankan timer, lalu tekan **Finish Workout** untuk menyimpan hasil dan memperbarui statistik harian.
 
