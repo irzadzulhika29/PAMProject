@@ -1,21 +1,27 @@
 package com.example.pamproject.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import com.example.pamproject.model.AccountData
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.pamproject.ui.screen.AccountDetailScreen
 import com.example.pamproject.ui.screen.AccountListScreen
+import com.example.pamproject.viewmodel.AccountViewModel
 
 @Composable
 fun AppNavigation(
     navController: NavHostController,
     modifier: Modifier = Modifier
 ) {
+    val accountViewModel: AccountViewModel = viewModel()
+    val accounts by accountViewModel.accounts.collectAsState()
+
     NavHost(
         navController = navController,
         startDestination = Screen.AccountList.route,
@@ -24,7 +30,7 @@ fun AppNavigation(
         // Account List Screen
         composable(route = Screen.AccountList.route) {
             AccountListScreen(
-                accounts = AccountData.accountList,
+                accounts = accounts,
                 onAccountClick = { accountId ->
                     navController.navigate(Screen.AccountDetail.createRoute(accountId))
                 }
@@ -41,12 +47,15 @@ fun AppNavigation(
             )
         ) { backStackEntry ->
             val accountId = backStackEntry.arguments?.getInt("accountId")
-            val account = AccountData.accountList.find { it.id == accountId }
-
-            AccountDetailScreen(
-                account = account,
-                onBackClick = { navController.navigateUp() }
-            )
+            if (accountId != null) {
+                AccountDetailScreen(
+                    accountId = accountId,
+                    onBackClick = { navController.navigateUp() },
+                    viewModel = accountViewModel
+                )
+            } else {
+                navController.navigateUp()
+            }
         }
     }
 }

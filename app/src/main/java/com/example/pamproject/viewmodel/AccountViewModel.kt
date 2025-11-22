@@ -1,4 +1,4 @@
-package com.example.pamproject
+package com.example.pamproject.viewmodel
 
 import androidx.lifecycle.ViewModel
 import com.example.pamproject.model.Account
