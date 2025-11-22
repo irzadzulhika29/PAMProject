@@ -41,7 +41,7 @@ fun AppNavigation(
             DashboardScreen(
                 stats = stats,
                 workouts = workoutViewModel.workouts,
-                latestLog = logs.lastOrNull(),
+                logs = logs,
                 onWorkoutClick = { workoutId ->
                     workoutViewModel.startSession(workoutId)
                     navController.navigate(Screen.Session.createRoute(workoutId))

@@ -19,8 +19,13 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccessibilityNew
 import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.DirectionsBike
+import androidx.compose.material.icons.filled.DirectionsRun
+import androidx.compose.material.icons.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.SelfImprovement
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -45,7 +50,7 @@ import com.example.pamproject.model.WorkoutLog
 fun DashboardScreen(
     stats: DailyStats,
     workouts: List<Workout>,
-    latestLog: WorkoutLog?,
+    logs: List<WorkoutLog>,
     onWorkoutClick: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -83,8 +88,6 @@ fun DashboardScreen(
         ) {
             GreetingCard()
 
-            LatestWorkoutCard(latestLog = latestLog)
-
             StatsCard(stats = stats)
 
             Text(
@@ -96,7 +99,9 @@ fun DashboardScreen(
 
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 320.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
@@ -107,6 +112,8 @@ fun DashboardScreen(
                     )
                 }
             }
+
+            WorkoutHistory(logs = logs)
         }
     }
 }
@@ -254,74 +261,6 @@ private fun StatChip(title: String, value: String, modifier: Modifier = Modifier
 }
 
 @Composable
-private fun LatestWorkoutCard(latestLog: WorkoutLog?) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(18.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(68.dp)
-                    .border(
-                        width = 2.dp,
-                        brush = Brush.linearGradient(
-                            listOf(
-                                MaterialTheme.colorScheme.primary,
-                                MaterialTheme.colorScheme.secondary
-                            )
-                        ),
-                        shape = CircleShape
-                    )
-                    .background(MaterialTheme.colorScheme.background, CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Bolt,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(32.dp)
-                )
-            }
-
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(
-                    text = "Workout Terbaru",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-                if (latestLog != null) {
-                    Text(
-                        text = latestLog.workout,
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "${formatMinutes(latestLog.durationMinutes)} · ${latestLog.calories.toInt()} kcal",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                } else {
-                    Text(
-                        text = "Belum ada aktivitas hari ini",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
 private fun WorkoutOptionCard(
     workout: Workout,
     onClick: () -> Unit
@@ -339,13 +278,13 @@ private fun WorkoutOptionCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(horizontal = 12.dp, vertical = 14.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
             Box(
                 modifier = Modifier
-                    .size(70.dp)
+                    .size(56.dp)
                     .background(
                         color = MaterialTheme.colorScheme.background,
                         shape = CircleShape
@@ -363,15 +302,16 @@ private fun WorkoutOptionCard(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Default.FitnessCenter,
+                    imageVector = workout.name.getWorkoutIcon(),
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(28.dp)
                 )
             }
 
             Text(
                 text = workout.name,
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(4.dp))
@@ -384,6 +324,68 @@ private fun WorkoutOptionCard(
     }
 }
 
+@Composable
+private fun WorkoutHistory(logs: List<WorkoutLog>) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(
+            text = "Workout Terbaru",
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+            color = MaterialTheme.colorScheme.onBackground
+        )
+
+        if (logs.isEmpty()) {
+            Text(
+                text = "Belum ada aktivitas hari ini",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        } else {
+            val sortedLogs = logs.sortedByDescending { it.date }
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                sortedLogs.forEach { log ->
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        shape = RoundedCornerShape(16.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(14.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(
+                                text = log.workout,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "${formatMinutes(log.durationMinutes)} · ${log.calories.toInt()} kcal",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = "Tanggal: ${log.date}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 private fun formatMinutes(minutes: Double): String {
     return "${"%.1f".format(minutes)} menit"
+}
+
+private fun String.getWorkoutIcon() = when (lowercase()) {
+    "yoga" -> Icons.Default.SelfImprovement
+    "running" -> Icons.Default.DirectionsRun
+    "stretching" -> Icons.Default.AccessibilityNew
+    "hiit" -> Icons.Default.Bolt
+    "cycling" -> Icons.Default.DirectionsBike
+    "walking" -> Icons.Default.DirectionsWalk
+    else -> Icons.Default.FitnessCenter
 }
