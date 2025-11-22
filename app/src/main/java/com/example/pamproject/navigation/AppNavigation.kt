@@ -29,6 +29,7 @@ fun AppNavigation(
     )
 
     val stats by workoutViewModel.todayStats.collectAsState()
+    val logs by workoutViewModel.logs.collectAsState()
     val timerState by workoutViewModel.timerState.collectAsState()
 
     NavHost(
@@ -40,6 +41,7 @@ fun AppNavigation(
             DashboardScreen(
                 stats = stats,
                 workouts = workoutViewModel.workouts,
+                latestLog = logs.lastOrNull(),
                 onWorkoutClick = { workoutId ->
                     workoutViewModel.startSession(workoutId)
                     navController.navigate(Screen.Session.createRoute(workoutId))
