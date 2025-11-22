@@ -105,7 +105,7 @@ fun AccountDetailContent(
 
         // Detail Information Cards
         DetailInfoCard(
-            icon = Icons.Default.School,
+            icon = Icons.Default.Menu,
             label = "Jurusan",
             value = account.jurusan
         )
