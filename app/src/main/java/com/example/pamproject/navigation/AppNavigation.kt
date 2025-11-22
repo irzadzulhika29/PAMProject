@@ -29,7 +29,6 @@ fun AppNavigation(
     )
 
     val stats by workoutViewModel.todayStats.collectAsState()
-    val logs by workoutViewModel.logs.collectAsState()
     val timerState by workoutViewModel.timerState.collectAsState()
 
     NavHost(
@@ -40,7 +39,6 @@ fun AppNavigation(
         composable(route = Screen.Dashboard.route) {
             DashboardScreen(
                 stats = stats,
-                recentLogs = logs,
                 workouts = workoutViewModel.workouts,
                 onWorkoutClick = { workoutId ->
                     workoutViewModel.startSession(workoutId)
