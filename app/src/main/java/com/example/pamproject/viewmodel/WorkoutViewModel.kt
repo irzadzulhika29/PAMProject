@@ -93,6 +93,16 @@ class WorkoutViewModel(private val repository: WorkoutRepository) : ViewModel() 
         return log
     }
 
+    fun deleteLog(log: WorkoutLog) {
+        val updatedLogs = repository.deleteLog(log)
+        _logs.value = updatedLogs
+    }
+
+    fun clearLogs() {
+        val updatedLogs = repository.clearLogs()
+        _logs.value = updatedLogs
+    }
+
     fun getWorkoutById(id: Int): Workout? = workouts.find { it.id == id }
 
     private fun calculateCalories(met: Double, durationMinutes: Double): Double {

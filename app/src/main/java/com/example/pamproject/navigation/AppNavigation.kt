@@ -45,7 +45,9 @@ fun AppNavigation(
                 onWorkoutClick = { workoutId ->
                     workoutViewModel.startSession(workoutId)
                     navController.navigate(Screen.Session.createRoute(workoutId))
-                }
+                },
+                onDeleteLog = workoutViewModel::deleteLog,
+                onDeleteAllLogs = workoutViewModel::clearLogs
             )
         }
 
