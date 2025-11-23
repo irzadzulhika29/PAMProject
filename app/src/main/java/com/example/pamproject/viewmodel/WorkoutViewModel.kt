@@ -17,6 +17,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 
 class WorkoutViewModel(private val repository: WorkoutRepository) : ViewModel() {
 
@@ -76,11 +78,14 @@ class WorkoutViewModel(private val repository: WorkoutRepository) : ViewModel() 
 
         val durationMinutes = elapsedSeconds / 60.0
         val calories = calculateCalories(workout.met, durationMinutes)
+        val currentTime = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"))
         val log = WorkoutLog(
             date = LocalDate.now().toString(),
+            time = currentTime,
             workout = workout.name,
             durationMinutes = durationMinutes,
-            calories = calories
+            calories = calories,
+            timestamp = System.currentTimeMillis()
         )
         val updatedLogs = repository.addLog(log)
         _logs.value = updatedLogs

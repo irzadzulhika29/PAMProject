@@ -6,6 +6,9 @@ import com.example.pamproject.model.WorkoutLog
 import org.json.JSONArray
 import org.json.JSONObject
 import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
+import java.time.ZoneId
 
 class WorkoutRepository(private val context: Context) {
     private val sharedPreferences =
@@ -70,20 +73,42 @@ class WorkoutRepository(private val context: Context) {
     }
 
     private fun JSONObject.toWorkoutLog(): WorkoutLog {
+        val date = optString("date", LocalDate.now().toString())
+        val time = optString("time", "00:00")
+        val storedTimestamp = optLong("timestamp", -1L)
+
+        // If no timestamp stored, create one from date + time
+        val timestamp = if (storedTimestamp == -1L) {
+            try {
+                val localDate = LocalDate.parse(date)
+                val localTime = LocalTime.parse(time)
+                val dateTime = LocalDateTime.of(localDate, localTime)
+                dateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+            } catch (e: Exception) {
+                0L // Very old timestamp so it appears last
+            }
+        } else {
+            storedTimestamp
+        }
+
         return WorkoutLog(
-            date = optString("date"),
+            date = date,
+            time = time,
             workout = optString("workout"),
             durationMinutes = optDouble("duration"),
-            calories = optDouble("calories")
+            calories = optDouble("calories"),
+            timestamp = timestamp
         )
     }
 
     private fun WorkoutLog.toJson(): JSONObject {
         return JSONObject().apply {
             put("date", date)
+            put("time", time)
             put("workout", workout)
             put("duration", durationMinutes)
             put("calories", calories)
+            put("timestamp", timestamp)
         }
     }
 

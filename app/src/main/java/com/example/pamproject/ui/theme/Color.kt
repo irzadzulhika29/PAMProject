@@ -2,10 +2,22 @@ package com.example.pamproject.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-val Purple80 = Color(0xFFD0BCFF)
-val PurpleGrey80 = Color(0xFFCCC2DC)
-val Pink80 = Color(0xFFEFB8C8)
+// Primary neon accents
+val Primary = Color(0xFF27E1C1)
+val PrimaryLight = Color(0xFF3DF5D7)
+val PrimaryDark = Color(0xFF1EB89A)
 
-val Purple40 = Color(0xFF6650a4)
-val PurpleGrey40 = Color(0xFF625b71)
-val Pink40 = Color(0xFF7D5260)
+// Backgrounds
+val Bg = Color(0xFF0E1117)
+val BgCard = Color(0xFF151A22)
+val BgDark = Color(0xFF0A0D12)
+
+// Text
+val TextPrimary = Color(0xFFFFFFFF)
+val TextSecondary = Color(0xFF9BA3B4)
+val TextMuted = Color(0xFF6C7280)
+
+// Status
+val Success = Color(0xFF27E1A2)
+val Warning = Color(0xFFFFC857)
+val Danger = Color(0xFFFF5C8A)
