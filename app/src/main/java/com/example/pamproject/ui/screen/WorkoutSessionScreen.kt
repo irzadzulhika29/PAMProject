@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -25,12 +26,16 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -56,6 +61,20 @@ fun WorkoutSessionScreen(
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    var showFinishDialog by remember { mutableStateOf(false) }
+
+    val finishSession = {
+        val result = onFinish()
+        result?.let {
+            scope.launch {
+                snackbarHostState.showSnackbar(
+                    message = "Durasi: ${"%.1f".format(it.durationMinutes)} menit · ${it.calories.toInt()} kcal"
+                )
+            }
+            onBack()
+        }
+        showFinishDialog = false
+    }
 
     LaunchedEffect(workout?.id) {
         if (workout == null) onBack()
@@ -98,19 +117,34 @@ fun WorkoutSessionScreen(
                 onStart = onStart,
                 onPause = onPause,
                 onResume = onResume,
-                onFinish = {
-                    val result = onFinish()
-                    result?.let {
-                        scope.launch {
-                            snackbarHostState.showSnackbar(
-                                message = "Durasi: ${"%.1f".format(it.durationMinutes)} menit · ${it.calories.toInt()} kcal"
-                            )
-                        }
-                        onBack()
-                    }
-                }
+                onFinish = { showFinishDialog = true }
             )
         }
+    }
+
+    if (showFinishDialog) {
+        AlertDialog(
+            onDismissRequest = { showFinishDialog = false },
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.Bolt,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            },
+            title = { Text(text = "Selesaikan sesi?") },
+            text = { Text(text = "Pastikan kamu sudah menyelesaikan workout ini.") },
+            confirmButton = {
+                TextButton(onClick = finishSession) {
+                    Text(text = "Ya, selesai")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showFinishDialog = false }) {
+                    Text(text = "Batal")
+                }
+            }
+        )
     }
 }
 
