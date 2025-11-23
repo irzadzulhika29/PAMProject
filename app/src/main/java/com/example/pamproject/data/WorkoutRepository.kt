@@ -41,6 +41,17 @@ class WorkoutRepository(private val context: Context) {
         return updated
     }
 
+    fun deleteLog(log: WorkoutLog): List<WorkoutLog> {
+        val updated = loadLogs().filterNot { it.timestamp == log.timestamp }
+        saveLogs(updated)
+        return updated
+    }
+
+    fun clearLogs(): List<WorkoutLog> {
+        saveLogs(emptyList())
+        return emptyList()
+    }
+
     fun calculateTodayStats(logs: List<WorkoutLog>): DailyStats {
         val today = LocalDate.now().toString()
         val todayLogs = logs.filter { it.date == today }
