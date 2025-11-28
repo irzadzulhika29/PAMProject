@@ -30,6 +30,7 @@ import coil.compose.rememberAsyncImagePainter
 import com.example.pamproject.model.WorkoutLog
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.layout.ContentScale
 
 @Composable
