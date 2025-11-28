@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.pamproject.data.WorkoutRepository
+import com.example.pamproject.model.DailyProgress
 import com.example.pamproject.model.DailyStats
 import com.example.pamproject.model.Workout
 import com.example.pamproject.model.WorkoutData
@@ -33,6 +34,14 @@ class WorkoutViewModel(private val repository: WorkoutRepository) : ViewModel() 
             scope = viewModelScope,
             started = kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5_000),
             initialValue = repository.calculateTodayStats(_logs.value)
+        )
+
+    val weeklyProgress: StateFlow<List<DailyProgress>> = _logs
+        .map { repository.getRecentProgress(it) }
+        .stateIn(
+            scope = viewModelScope,
+            started = kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5_000),
+            initialValue = repository.getRecentProgress(_logs.value)
         )
 
     private val _timerState = MutableStateFlow(TimerState())

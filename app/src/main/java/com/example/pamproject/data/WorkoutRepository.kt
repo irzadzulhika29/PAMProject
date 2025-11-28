@@ -1,6 +1,7 @@
 package com.example.pamproject.data
 
 import android.content.Context
+import com.example.pamproject.model.DailyProgress
 import com.example.pamproject.model.DailyStats
 import com.example.pamproject.model.WorkoutLog
 import org.json.JSONArray
@@ -9,6 +10,8 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
+import java.time.format.TextStyle
+import java.util.Locale
 
 class WorkoutRepository(private val context: Context) {
     private val sharedPreferences =
@@ -62,6 +65,21 @@ class WorkoutRepository(private val context: Context) {
             totalCalories = totalCalories,
             streak = calculateStreak(logs)
         )
+    }
+
+    fun getRecentProgress(logs: List<WorkoutLog>, days: Int = 7): List<DailyProgress> {
+        val today = LocalDate.now()
+        return (0 until days).map { index ->
+            val date = today.minusDays((days - 1 - index).toLong())
+            val label = date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault())
+            val logsForDate = logs.filter { it.date == date.toString() }
+
+            DailyProgress(
+                dateLabel = label,
+                totalCalories = logsForDate.sumOf { it.calories },
+                totalDurationMinutes = logsForDate.sumOf { it.durationMinutes }
+            )
+        }
     }
 
     private fun calculateStreak(logs: List<WorkoutLog>): Int {

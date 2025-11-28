@@ -61,8 +61,10 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil.compose.rememberAsyncImagePainter
+import com.example.pamproject.model.DailyProgress
 import com.example.pamproject.model.DailyStats
 import com.example.pamproject.model.Workout
 import com.example.pamproject.model.WorkoutLog
@@ -71,6 +73,7 @@ import com.example.pamproject.model.WorkoutLog
 @Composable
 fun DashboardScreen(
     stats: DailyStats,
+    progress: List<DailyProgress>,
     workouts: List<Workout>,
     logs: List<WorkoutLog>,
     onWorkoutClick: (Int) -> Unit,
@@ -119,7 +122,10 @@ fun DashboardScreen(
             ) {
                 GreetingCard()
 
-                StatsCard(stats = stats)
+                StatsCard(
+                    stats = stats,
+                    progress = progress
+                )
 
                 Text(
                     text = "Pilih Workout",
@@ -463,7 +469,10 @@ private fun GreetingCard() {
 }
 
 @Composable
-private fun StatsCard(stats: DailyStats) {
+private fun StatsCard(stats: DailyStats, progress: List<DailyProgress>) {
+    val caloriesColor = Color(0xFFFF9270)
+    val durationColor = Color(0xFF74B4FF)
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -477,43 +486,199 @@ private fun StatsCard(stats: DailyStats) {
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text(
-                text = "Progress Hari Ini",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = "Progress Hari Ini",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Pantau akumulasi 7 hari terakhir untuk kalori & durasi",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            DailyProgressChart(
+                dailyProgress = progress,
+                caloriesColor = caloriesColor,
+                durationColor = durationColor
             )
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(14.dp)
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                StatChip(
-                    title = "Durasi",
-                    value = formatMinutes(stats.totalDurationMinutes),
-                    icon = Icons.Default.AccessTime,
-                    iconColor = Color(0xFFf08080),
-                    modifier = Modifier.weight(1f)
-                )
-                StatChip(
-                    title = "Kalori",
+                HighlightStat(
+                    title = "Kalori hari ini",
                     value = "${stats.totalCalories.toInt()} kcal",
                     icon = Icons.Default.LocalFireDepartment,
-                    iconColor = Color(0xFF51a5f2),
+                    accent = caloriesColor,
+                    modifier = Modifier.weight(1f)
+                )
+                HighlightStat(
+                    title = "Durasi hari ini",
+                    value = formatMinutes(stats.totalDurationMinutes),
+                    icon = Icons.Default.AccessTime,
+                    accent = durationColor,
                     modifier = Modifier.weight(1f)
                 )
             }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Start
+            StatChip(
+                title = "Streak",
+                value = "${stats.streak} hari",
+                icon = Icons.Default.Whatshot,
+                iconColor = Color(0xFFcccccc)
+            )
+        }
+    }
+}
+
+@Composable
+private fun DailyProgressChart(
+    dailyProgress: List<DailyProgress>,
+    caloriesColor: Color,
+    durationColor: Color,
+    modifier: Modifier = Modifier
+) {
+    val maxValue = dailyProgress
+        .flatMap { listOf(it.totalCalories, it.totalDurationMinutes) }
+        .maxOrNull()
+        ?.takeIf { it > 0 }
+        ?: 1.0
+    val barAreaHeight = 140.dp
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(
+                color = MaterialTheme.colorScheme.background,
+                shape = RoundedCornerShape(14.dp)
+            )
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            LegendItem(color = caloriesColor, label = "Kalori")
+            LegendItem(color = durationColor, label = "Durasi (mnt)")
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(barAreaHeight),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.Bottom
+        ) {
+            dailyProgress.forEach { entry ->
+                val caloriesHeight = ((entry.totalCalories / maxValue) * barAreaHeight.value).toFloat().dp
+                val durationHeight = ((entry.totalDurationMinutes / maxValue) * barAreaHeight.value).toFloat().dp
+
+                Column(
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Bottom
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(barAreaHeight - 12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.Bottom
+                    ) {
+                        Bar(valueHeight = caloriesHeight, color = caloriesColor)
+                        Bar(valueHeight = durationHeight, color = durationColor)
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = entry.dateLabel,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun Bar(valueHeight: Dp, color: Color) {
+    Box(
+        modifier = Modifier
+            .width(16.dp)
+            .height(valueHeight.coerceAtLeast(6.dp))
+            .background(color, RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp))
+    )
+}
+
+@Composable
+private fun LegendItem(color: Color, label: String) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(14.dp)
+                .background(color, RoundedCornerShape(4.dp))
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun HighlightStat(
+    title: String,
+    value: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    accent: Color,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.background),
+        border = BorderStroke(1.dp, accent.copy(alpha = 0.35f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(vertical = 12.dp, horizontal = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(34.dp)
+                    .background(accent.copy(alpha = 0.14f), CircleShape),
+                contentAlignment = Alignment.Center
             ) {
-                StatChip(
-                    title = "Streak",
-                    value = "${stats.streak} hari",
-                    icon = Icons.Default.Whatshot,
-                    iconColor = Color(0xFFcccccc),
-                    modifier = Modifier.weight(1f)
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = accent
+                )
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = value,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
                 )
             }
         }
