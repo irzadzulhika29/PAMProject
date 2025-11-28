@@ -31,6 +31,7 @@ fun AppNavigation(
     )
 
     val stats by workoutViewModel.todayStats.collectAsState()
+    val weeklyProgress by workoutViewModel.weeklyProgress.collectAsState()
     val logs by workoutViewModel.logs.collectAsState()
     val timerState by workoutViewModel.timerState.collectAsState()
 
@@ -42,6 +43,7 @@ fun AppNavigation(
         composable(route = Screen.Dashboard.route) {
             DashboardScreen(
                 stats = stats,
+                progress = weeklyProgress,
                 workouts = workoutViewModel.workouts,
                 logs = logs,
                 onWorkoutClick = { workoutId ->
