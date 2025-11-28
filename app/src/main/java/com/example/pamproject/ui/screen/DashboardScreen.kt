@@ -62,6 +62,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil.compose.rememberAsyncImagePainter
@@ -550,7 +551,8 @@ private fun DailyProgressChart(
         .maxOrNull()
         ?.takeIf { it > 0 }
         ?: 1.0
-    val barAreaHeight = 140.dp
+    val barHeight = 170.dp
+    val chartHeight = barHeight + 48.dp
 
     Column(
         modifier = modifier
@@ -573,13 +575,13 @@ private fun DailyProgressChart(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(barAreaHeight),
+                .height(chartHeight),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.Bottom
         ) {
             dailyProgress.forEach { entry ->
-                val caloriesHeight = ((entry.totalCalories / maxValue) * barAreaHeight.value).toFloat().dp
-                val durationHeight = ((entry.totalDurationMinutes / maxValue) * barAreaHeight.value).toFloat().dp
+                val caloriesHeight = ((entry.totalCalories / maxValue) * barHeight.value).toFloat().dp
+                val durationHeight = ((entry.totalDurationMinutes / maxValue) * barHeight.value).toFloat().dp
 
                 Column(
                     modifier = Modifier.weight(1f),
@@ -589,19 +591,23 @@ private fun DailyProgressChart(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(barAreaHeight - 12.dp),
+                            .height(barHeight),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.Bottom
                     ) {
                         Bar(valueHeight = caloriesHeight, color = caloriesColor)
                         Bar(valueHeight = durationHeight, color = durationColor)
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
                     Text(
                         text = entry.dateLabel,
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onBackground
+                        color = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.graphicsLayer(
+                            rotationZ = -65f,
+                            transformOrigin = TransformOrigin(0.5f, 0.5f)
+                        )
                     )
                 }
             }
