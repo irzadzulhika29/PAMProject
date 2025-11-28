@@ -16,6 +16,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -23,11 +25,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 import com.example.pamproject.model.DailyProgress
 import com.example.pamproject.model.DailyStats
 import com.example.pamproject.model.Workout
@@ -48,9 +52,12 @@ fun DashboardScreen(
     var logToDelete by remember { mutableStateOf<WorkoutLog?>(null) }
     var showDeleteAllDialog by remember { mutableStateOf(false) }
     var selectedLog by remember { mutableStateOf<WorkoutLog?>(null) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     Box(modifier = modifier.fillMaxSize()) {
         Scaffold(
+            snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
             topBar = {
                 TopAppBar(
                     title = {
@@ -131,6 +138,11 @@ fun DashboardScreen(
                         logToDelete = null
                         showDeleteAllDialog = false
                         selectedLog = log
+                        scope.launch {
+                            snackbarHostState.showSnackbar(
+                                message = "${log.workout} • ${formatMinutes(log.durationMinutes)} • ${log.calories.toInt()} kcal • ${log.date} ${log.time}"
+                            )
+                        }
                     }
                 )
             }

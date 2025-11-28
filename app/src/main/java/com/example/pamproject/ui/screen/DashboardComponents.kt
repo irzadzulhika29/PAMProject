@@ -16,6 +16,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -450,6 +453,7 @@ fun WorkoutOptionCard(
     }
 }
 
+
 @Composable
 fun WorkoutHistory(
     logs: List<WorkoutLog>,
@@ -457,6 +461,10 @@ fun WorkoutHistory(
     onDeleteAllRequested: () -> Unit,
     onLogClick: (WorkoutLog) -> Unit = {}
 ) {
+    // State handling: rememberLazyListState menyimpan scroll position
+    // State ini akan bertahan saat configuration changes (rotasi layar)
+    val listState = rememberLazyListState()
+
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -488,140 +496,160 @@ fun WorkoutHistory(
             )
         } else {
             val sortedLogs = logs.sortedByDescending { it.timestamp }
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                sortedLogs.forEach { log ->
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onLogClick(log) },
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                        shape = RoundedCornerShape(16.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(14.dp),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            if (log.imageUri != null) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(56.dp)
-                                        .background(
-                                            color = MaterialTheme.colorScheme.background,
-                                            shape = RoundedCornerShape(12.dp)
-                                        )
-                                        .border(
-                                            width = 1.5.dp,
-                                            brush = Brush.linearGradient(
-                                                colors = listOf(
-                                                    MaterialTheme.colorScheme.primary,
-                                                    MaterialTheme.colorScheme.secondary
-                                                )
-                                            ),
-                                            shape = RoundedCornerShape(12.dp)
-                                        ),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Image(
-                                        painter = rememberAsyncImagePainter(log.imageUri),
-                                        contentDescription = null,
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentScale = ContentScale.Fit
-                                    )
-                                }
-                            } else {
-                                Box(
-                                    modifier = Modifier
-                                        .size(48.dp)
-                                        .background(
-                                            color = MaterialTheme.colorScheme.background,
-                                            shape = CircleShape
-                                        )
-                                        .border(
-                                            width = 1.5.dp,
-                                            brush = Brush.linearGradient(
-                                                colors = listOf(
-                                                    MaterialTheme.colorScheme.primary,
-                                                    MaterialTheme.colorScheme.secondary
-                                                )
-                                            ),
-                                            shape = CircleShape
-                                        ),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = log.workout.getWorkoutIcon(),
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(24.dp)
-                                    )
-                                }
-                            }
 
-                            Column(
-                                modifier = Modifier.weight(1f),
-                                verticalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Text(
-                                    text = log.workout,
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold
-                                )
-
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.AccessTime,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Text(
-                                        text = "${formatMinutes(log.durationMinutes)} · ${log.calories.toInt()} kcal",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.CalendarToday,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Text(
-                                        text = "${log.date} · ${log.time}",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-
-                            IconButton(onClick = { onDeleteLogRequested(log) }) {
-                                Icon(
-                                    imageVector = Icons.Default.Delete,
-                                    contentDescription = "Hapus aktivitas",
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    }
+            LazyColumn(
+                state = listState, // State handling: menjaga scroll position saat rotasi
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(400.dp), // Tinggi maksimum untuk scroll area
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                items(sortedLogs, key = { it.timestamp }) { log ->
+                    WorkoutLogCard(
+                        log = log,
+                        onLogClick = onLogClick,
+                        onDeleteLogRequested = onDeleteLogRequested
+                    )
                 }
             }
         }
     }
 }
 
-private fun formatMinutes(minutes: Double): String {
+@Composable
+private fun WorkoutLogCard(
+    log: WorkoutLog,
+    onLogClick: (WorkoutLog) -> Unit,
+    onDeleteLogRequested: (WorkoutLog) -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onLogClick(log) },
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (log.imageUri != null) {
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.background,
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        .border(
+                            width = 1.5.dp,
+                            brush = Brush.linearGradient(
+                                colors = listOf(
+                                    MaterialTheme.colorScheme.primary,
+                                    MaterialTheme.colorScheme.secondary
+                                )
+                            ),
+                            shape = RoundedCornerShape(12.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Image(
+                        painter = rememberAsyncImagePainter(log.imageUri),
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Fit
+                    )
+                }
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.background,
+                            shape = CircleShape
+                        )
+                        .border(
+                            width = 1.5.dp,
+                            brush = Brush.linearGradient(
+                                colors = listOf(
+                                    MaterialTheme.colorScheme.primary,
+                                    MaterialTheme.colorScheme.secondary
+                                )
+                            ),
+                            shape = CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = log.workout.getWorkoutIcon(),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Text(
+                    text = log.workout,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AccessTime,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = "${formatMinutes(log.durationMinutes)} · ${log.calories.toInt()} kcal",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CalendarToday,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = "${log.date} · ${log.time}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            IconButton(onClick = { onDeleteLogRequested(log) }) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Hapus aktivitas",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+internal fun formatMinutes(minutes: Double): String {
     return "${"%.1f".format(minutes)} menit"
 }
 
