@@ -21,6 +21,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.AccessibilityNew
@@ -77,6 +78,7 @@ fun DashboardScreen(
 ) {
     var logToDelete by remember { mutableStateOf<WorkoutLog?>(null) }
     var showDeleteAllDialog by remember { mutableStateOf(false) }
+    var selectedLog by remember { mutableStateOf<WorkoutLog?>(null) }
 
     Scaffold(
         topBar = {
@@ -479,7 +481,9 @@ private fun WorkoutHistory(
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 sortedLogs.forEach { log ->
                     Card(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { selectedLog = log },
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                         shape = RoundedCornerShape(16.dp),
                         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
@@ -516,7 +520,7 @@ private fun WorkoutHistory(
                                         painter = rememberAsyncImagePainter(log.imageUri),
                                         contentDescription = null,
                                         modifier = Modifier.fillMaxSize(),
-                                        contentScale = ContentScale.Crop
+                                        contentScale = ContentScale.Fit
                                     )
                                 }
                             } else {
@@ -544,9 +548,45 @@ private fun WorkoutHistory(
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(24.dp)
-                                    )
-                                }
-                            }
+        )
+    }
+
+    selectedLog?.let { log ->
+        AlertDialog(
+            onDismissRequest = { selectedLog = null },
+            confirmButton = {
+                TextButton(onClick = { selectedLog = null }) {
+                    Text(text = "Tutup")
+                }
+            },
+            title = { Text(text = log.workout) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    if (log.imageUri != null) {
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(180.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                        ) {
+                            Image(
+                                painter = rememberAsyncImagePainter(log.imageUri),
+                                contentDescription = null,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Fit
+                            )
+                        }
+                    }
+
+                    Text(text = "Tanggal: ${log.date} - ${log.time}")
+                    Text(text = "Durasi: ${"%.1f".format(log.durationMinutes)} menit")
+                    Text(text = "Kalori: ${"%.0f".format(log.calories)} kkal")
+                }
+            }
+        )
+    }
+}
 
                             // Info workout
                             Column(

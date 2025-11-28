@@ -26,7 +26,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -366,9 +369,15 @@ private fun ControlButtons(
                 contentColor = MaterialTheme.colorScheme.onPrimary
             ),
             shape = RoundedCornerShape(14.dp),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
         ) {
-            Text(if (isPaused) "Resume" else "Mulai Sekarang", fontWeight = FontWeight.SemiBold)
+            Icon(
+                imageVector = Icons.Default.PlayArrow,
+                contentDescription = if (isPaused) "Lanjutkan" else "Mulai",
+                modifier = Modifier.size(28.dp)
+            )
         }
 
         Row(
@@ -383,9 +392,15 @@ private fun ControlButtons(
                     contentColor = MaterialTheme.colorScheme.onSecondary
                 ),
                 shape = RoundedCornerShape(14.dp),
-                modifier = Modifier.weight(1f)
+                modifier = Modifier
+                    .weight(1f)
+                    .height(56.dp)
             ) {
-                Text("Pause", fontWeight = FontWeight.SemiBold)
+                Icon(
+                    imageVector = Icons.Default.Pause,
+                    contentDescription = "Pause",
+                    modifier = Modifier.size(24.dp)
+                )
             }
 
             Button(
@@ -396,9 +411,15 @@ private fun ControlButtons(
                     contentColor = MaterialTheme.colorScheme.onTertiary
                 ),
                 shape = RoundedCornerShape(14.dp),
-                modifier = Modifier.weight(1f)
+                modifier = Modifier
+                    .weight(1f)
+                    .height(56.dp)
             ) {
-                Text("Selesai", fontWeight = FontWeight.SemiBold)
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = "Selesaikan",
+                    modifier = Modifier.size(24.dp)
+                )
             }
         }
     }
