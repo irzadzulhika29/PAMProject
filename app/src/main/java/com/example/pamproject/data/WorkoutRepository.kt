@@ -87,6 +87,7 @@ class WorkoutRepository(private val context: Context) {
         val date = optString("date", LocalDate.now().toString())
         val time = optString("time", "00:00")
         val storedTimestamp = optLong("timestamp", -1L)
+        val imageUri = optString("imageUri", null)
 
         // If no timestamp stored, create one from date + time
         val timestamp = if (storedTimestamp == -1L) {
@@ -108,7 +109,8 @@ class WorkoutRepository(private val context: Context) {
             workout = optString("workout"),
             durationMinutes = optDouble("duration"),
             calories = optDouble("calories"),
-            timestamp = timestamp
+            timestamp = timestamp,
+            imageUri = imageUri
         )
     }
 
@@ -120,6 +122,9 @@ class WorkoutRepository(private val context: Context) {
             put("duration", durationMinutes)
             put("calories", calories)
             put("timestamp", timestamp)
+            if (imageUri != null) {
+                put("imageUri", imageUri)
+            }
         }
     }
 

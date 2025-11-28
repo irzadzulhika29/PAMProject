@@ -1,6 +1,7 @@
 package com.example.pamproject.ui.screen
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -55,8 +56,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import coil.compose.rememberAsyncImagePainter
 import com.example.pamproject.model.DailyStats
 import com.example.pamproject.model.Workout
 import com.example.pamproject.model.WorkoutLog
@@ -488,32 +491,61 @@ private fun WorkoutHistory(
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // Icon workout
-                            Box(
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .background(
-                                        color = MaterialTheme.colorScheme.background,
-                                        shape = CircleShape
-                                    )
-                                    .border(
-                                        width = 1.5.dp,
-                                        brush = Brush.linearGradient(
-                                            colors = listOf(
-                                                MaterialTheme.colorScheme.primary,
-                                                MaterialTheme.colorScheme.secondary
-                                            )
+                            // Icon / image workout
+                            if (log.imageUri != null) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(56.dp)
+                                        .background(
+                                            color = MaterialTheme.colorScheme.background,
+                                            shape = RoundedCornerShape(12.dp)
+                                        )
+                                        .border(
+                                            width = 1.5.dp,
+                                            brush = Brush.linearGradient(
+                                                colors = listOf(
+                                                    MaterialTheme.colorScheme.primary,
+                                                    MaterialTheme.colorScheme.secondary
+                                                )
+                                            ),
+                                            shape = RoundedCornerShape(12.dp)
                                         ),
-                                        shape = CircleShape
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = log.workout.getWorkoutIcon(),
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(24.dp)
-                                )
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Image(
+                                        painter = rememberAsyncImagePainter(log.imageUri),
+                                        contentDescription = null,
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                }
+                            } else {
+                                Box(
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .background(
+                                            color = MaterialTheme.colorScheme.background,
+                                            shape = CircleShape
+                                        )
+                                        .border(
+                                            width = 1.5.dp,
+                                            brush = Brush.linearGradient(
+                                                colors = listOf(
+                                                    MaterialTheme.colorScheme.primary,
+                                                    MaterialTheme.colorScheme.secondary
+                                                )
+                                            ),
+                                            shape = CircleShape
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = log.workout.getWorkoutIcon(),
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
                             }
 
                             // Info workout

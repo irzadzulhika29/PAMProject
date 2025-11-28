@@ -68,7 +68,7 @@ class WorkoutViewModel(private val repository: WorkoutRepository) : ViewModel() 
         startTicker()
     }
 
-    fun finishWorkout(): WorkoutLog? {
+    fun finishWorkout(imageUri: String? = null): WorkoutLog? {
         val workout = _timerState.value.selectedWorkout ?: return null
         val elapsedSeconds = _timerState.value.elapsedSeconds
         if (elapsedSeconds <= 0) {
@@ -85,7 +85,8 @@ class WorkoutViewModel(private val repository: WorkoutRepository) : ViewModel() 
             workout = workout.name,
             durationMinutes = durationMinutes,
             calories = calories,
-            timestamp = System.currentTimeMillis()
+            timestamp = System.currentTimeMillis(),
+            imageUri = imageUri
         )
         val updatedLogs = repository.addLog(log)
         _logs.value = updatedLogs

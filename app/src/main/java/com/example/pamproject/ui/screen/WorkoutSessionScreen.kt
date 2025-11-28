@@ -1,20 +1,32 @@
 package com.example.pamproject.ui.screen
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
+import androidx.core.content.FileProvider
+import java.io.File
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -40,8 +52,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import coil.compose.rememberAsyncImagePainter
 import com.example.pamproject.model.Workout
 import com.example.pamproject.model.WorkoutLog
 import com.example.pamproject.viewmodel.WorkoutViewModel
@@ -55,24 +71,63 @@ fun WorkoutSessionScreen(
     onStart: () -> Unit,
     onPause: () -> Unit,
     onResume: () -> Unit,
-    onFinish: () -> WorkoutLog?,
+    onFinish: (String?) -> WorkoutLog?,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     var showFinishDialog by remember { mutableStateOf(false) }
+    var showPhotoSection by remember { mutableStateOf(false) }
+    var selectedImageUri by remember { mutableStateOf<String?>(null) }
+    var cameraImageUri by remember { mutableStateOf<Uri?>(null) }
 
-    val finishSession = {
-        val result = onFinish()
-        result?.let {
-            scope.launch {
-                snackbarHostState.showSnackbar(
-                    message = "Durasi: ${"%.1f".format(it.durationMinutes)} menit · ${it.calories.toInt()} kcal"
-                )
+    val context = LocalContext.current
+
+    // Create temp file for camera
+    val createImageFile: () -> File = {
+        val timeStamp = System.currentTimeMillis()
+        val storageDir = context.cacheDir
+        File.createTempFile(
+            "WORKOUT_${timeStamp}_",
+            ".jpg",
+            storageDir
+        )
+    }
+
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success) {
+            cameraImageUri?.let {
+                selectedImageUri = it.toString()
             }
-            onBack()
         }
+    }
+
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        uri?.let {
+            // Persist read permission for future use
+            try {
+                context.contentResolver.takePersistableUriPermission(
+                    it,
+                    android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            } catch (_: Exception) {
+                // ignore if not persistable
+            }
+            selectedImageUri = it.toString()
+        }
+    }
+
+    val finishSession: () -> Unit = {
+        // Pause timer when finishing session
+        if (timerState.isRunning) {
+            onPause()
+        }
+        showPhotoSection = true
         showFinishDialog = false
     }
 
@@ -112,14 +167,155 @@ fun WorkoutSessionScreen(
         ) {
             TimerDisplay(workout, timerState)
 
-            ControlButtons(
-                isRunning = timerState.isRunning,
-                isPaused = timerState.isPaused,
-                onStart = onStart,
-                onPause = onPause,
-                onResume = onResume,
-                onFinish = { showFinishDialog = true }
-            )
+            if (!showPhotoSection) {
+                ControlButtons(
+                    isRunning = timerState.isRunning,
+                    isPaused = timerState.isPaused,
+                    onStart = onStart,
+                    onPause = onPause,
+                    onResume = onResume,
+                    onFinish = { showFinishDialog = true }
+                )
+            } else {
+                // Post-session photo & save section
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Tambahkan foto hasil workout (opsional)",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Button(
+                            onClick = {
+                                val photoFile = createImageFile()
+                                val photoUri = FileProvider.getUriForFile(
+                                    context,
+                                    "${context.packageName}.fileprovider",
+                                    photoFile
+                                )
+                                cameraImageUri = photoUri
+                                cameraLauncher.launch(photoUri)
+                            },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AddAPhoto,
+                                contentDescription = null
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Kamera")
+                        }
+
+                        Button(
+                            onClick = {
+                                galleryLauncher.launch(
+                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                )
+                            },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.PhotoLibrary,
+                                contentDescription = null
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Galeri")
+                        }
+                    }
+
+                    if (selectedImageUri != null) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = "Preview Foto",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(180.dp)
+                                .background(
+                                    color = MaterialTheme.colorScheme.surfaceVariant,
+                                    shape = RoundedCornerShape(16.dp)
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Image(
+                                painter = rememberAsyncImagePainter(selectedImageUri),
+                                contentDescription = null,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Button(
+                            onClick = {
+                                val result = onFinish(selectedImageUri)
+                                result?.let {
+                                    scope.launch {
+                                        snackbarHostState.showSnackbar(
+                                            message = "Durasi: ${"%.1f".format(it.durationMinutes)} menit · ${it.calories.toInt()} kcal"
+                                        )
+                                    }
+                                }
+                                onBack()
+                            },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            )
+                        ) {
+                            Text("Simpan & Kembali")
+                        }
+
+                        Button(
+                            onClick = {
+                                val result = onFinish(null)
+                                result?.let {
+                                    scope.launch {
+                                        snackbarHostState.showSnackbar(
+                                            message = "Durasi: ${"%.1f".format(it.durationMinutes)} menit · ${it.calories.toInt()} kcal"
+                                        )
+                                    }
+                                }
+                                onBack()
+                            },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.secondary,
+                                contentColor = MaterialTheme.colorScheme.onSecondary
+                            )
+                        ) {
+                            Text("Lewati Foto")
+                        }
+                    }
+                }
+            }
         }
     }
 
