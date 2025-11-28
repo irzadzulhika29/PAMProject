@@ -71,7 +71,16 @@ class WorkoutRepository(private val context: Context) {
         val today = LocalDate.now()
         return (0 until days).map { index ->
             val date = today.minusDays((days - 1 - index).toLong())
-            val label = date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault())
+            val label = when (date.dayOfWeek.value) {
+                1 -> "Mon"
+                2 -> "Tue"
+                3 -> "Wed"
+                4 -> "Thu"
+                5 -> "Fri"
+                6 -> "Sat"
+                7 -> "Sun"
+                else -> "---"
+            }
             val logsForDate = logs.filter { it.date == date.toString() }
 
             DailyProgress(
