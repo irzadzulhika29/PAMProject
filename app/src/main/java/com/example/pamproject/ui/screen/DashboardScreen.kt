@@ -145,7 +145,8 @@ fun DashboardScreen(
             WorkoutHistory(
                 logs = logs,
                 onDeleteLogRequested = { log -> logToDelete = log },
-                onDeleteAllRequested = { showDeleteAllDialog = true }
+                onDeleteAllRequested = { showDeleteAllDialog = true },
+                onLogClick = { log -> selectedLog = log }
             )
         }
     }
@@ -205,6 +206,42 @@ fun DashboardScreen(
             dismissButton = {
                 TextButton(onClick = { showDeleteAllDialog = false }) {
                     Text(text = "Batal")
+                }
+            }
+        )
+    }
+
+    selectedLog?.let { log ->
+        AlertDialog(
+            onDismissRequest = { selectedLog = null },
+            confirmButton = {
+                TextButton(onClick = { selectedLog = null }) {
+                    Text(text = "Tutup")
+                }
+            },
+            title = { Text(text = log.workout) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    if (log.imageUri != null) {
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(180.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                        ) {
+                            Image(
+                                painter = rememberAsyncImagePainter(log.imageUri),
+                                contentDescription = null,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+                    }
+
+                    Text(text = "Tanggal: ${log.date} - ${log.time}")
+                    Text(text = "Durasi: ${"%.1f".format(log.durationMinutes)} menit")
+                    Text(text = "Kalori: ${"%.0f".format(log.calories)} kcal")
                 }
             }
         )
@@ -445,7 +482,8 @@ private fun WorkoutOptionCard(
 private fun WorkoutHistory(
     logs: List<WorkoutLog>,
     onDeleteLogRequested: (WorkoutLog) -> Unit,
-    onDeleteAllRequested: () -> Unit
+    onDeleteAllRequested: () -> Unit,
+    onLogClick: (WorkoutLog) -> Unit = {}
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(
@@ -483,7 +521,7 @@ private fun WorkoutHistory(
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { selectedLog = log },
+                            .clickable { onLogClick(log) },
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                         shape = RoundedCornerShape(16.dp),
                         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
@@ -548,45 +586,9 @@ private fun WorkoutHistory(
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(24.dp)
-        )
-    }
-
-    selectedLog?.let { log ->
-        AlertDialog(
-            onDismissRequest = { selectedLog = null },
-            confirmButton = {
-                TextButton(onClick = { selectedLog = null }) {
-                    Text(text = "Tutup")
-                }
-            },
-            title = { Text(text = log.workout) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    if (log.imageUri != null) {
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(180.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                        ) {
-                            Image(
-                                painter = rememberAsyncImagePainter(log.imageUri),
-                                contentDescription = null,
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Fit
-                            )
-                        }
-                    }
-
-                    Text(text = "Tanggal: ${log.date} - ${log.time}")
-                    Text(text = "Durasi: ${"%.1f".format(log.durationMinutes)} menit")
-                    Text(text = "Kalori: ${"%.0f".format(log.calories)} kkal")
-                }
-            }
-        )
-    }
-}
+                                    )
+                                }
+                            }
 
                             // Info workout
                             Column(
