@@ -36,18 +36,20 @@ import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.SelfImprovement
 import androidx.compose.material.icons.filled.Whatshot
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
@@ -80,102 +82,173 @@ fun DashboardScreen(
     var showDeleteAllDialog by remember { mutableStateOf(false) }
     var selectedLog by remember { mutableStateOf<WorkoutLog?>(null) }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(
-                            text = "Workit",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                        Text(
-                            text = "Stay consistent, stay strong",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color.White.copy(alpha = 0.8f)
+    Box(modifier = modifier.fillMaxSize()) {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = {
+                        Column {
+                            Text(
+                                text = "Workit",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                            Text(
+                                text = "Stay consistent, stay strong",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color.White.copy(alpha = 0.8f)
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.background,
+                        titleContentColor = Color.White
+                    )
+                )
+            }
+        ) { innerPadding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .background(MaterialTheme.colorScheme.background)
+                    .verticalScroll(rememberScrollState())
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(18.dp)
+            ) {
+                GreetingCard()
+
+                StatsCard(stats = stats)
+
+                Text(
+                    text = "Pilih Workout",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(3),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(((workouts.size / 3 + if (workouts.size % 3 != 0) 1 else 0) * 140).dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    userScrollEnabled = false
+                ) {
+                    items(workouts, key = { it.id }) { workout ->
+                        WorkoutOptionCard(
+                            workout = workout,
+                            onClick = { onWorkoutClick(workout.id) }
                         )
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                    titleContentColor = Color.White
-                )
-            )
-        }
-    ) { innerPadding ->
-        Column(
-            modifier = modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .background(MaterialTheme.colorScheme.background)
-                .verticalScroll(rememberScrollState())
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp)
-        ) {
-            GreetingCard()
-
-            StatsCard(stats = stats)
-
-            Text(
-                text = "Pilih Workout",
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(3),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(((workouts.size / 3 + if (workouts.size % 3 != 0) 1 else 0) * 140).dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                userScrollEnabled = false
-            ) {
-                items(workouts, key = { it.id }) { workout ->
-                    WorkoutOptionCard(
-                        workout = workout,
-                        onClick = { onWorkoutClick(workout.id) }
-                    )
                 }
+
+                WorkoutHistory(
+                    logs = logs,
+                    onDeleteLogRequested = { log ->
+                        selectedLog = null
+                        showDeleteAllDialog = false
+                        logToDelete = log
+                    },
+                    onDeleteAllRequested = {
+                        selectedLog = null
+                        logToDelete = null
+                        showDeleteAllDialog = true
+                    },
+                    onLogClick = { log ->
+                        logToDelete = null
+                        showDeleteAllDialog = false
+                        selectedLog = log
+                    }
+                )
             }
-
-            WorkoutHistory(
-                logs = logs,
-                onDeleteLogRequested = { log -> logToDelete = log },
-                onDeleteAllRequested = { showDeleteAllDialog = true },
-                onLogClick = { log -> selectedLog = log }
-            )
         }
-    }
 
+        DashboardDialogs(
+            logToDelete = logToDelete,
+            onDismissDeleteLog = { logToDelete = null },
+            onDeleteLog = {
+                logToDelete?.let { onDeleteLog(it) }
+                logToDelete = null
+            },
+            showDeleteAllDialog = showDeleteAllDialog,
+            onDismissDeleteAll = { showDeleteAllDialog = false },
+            onDeleteAll = {
+                onDeleteAllLogs()
+                showDeleteAllDialog = false
+            },
+            selectedLog = selectedLog,
+            onDismissSelectedLog = { selectedLog = null }
+        )
+    }
+}
+
+@Composable
+private fun DashboardDialogs(
+    logToDelete: WorkoutLog?,
+    onDismissDeleteLog: () -> Unit,
+    onDeleteLog: () -> Unit,
+    showDeleteAllDialog: Boolean,
+    onDismissDeleteAll: () -> Unit,
+    onDeleteAll: () -> Unit,
+    selectedLog: WorkoutLog?,
+    onDismissSelectedLog: () -> Unit
+) {
     if (logToDelete != null) {
         AlertDialog(
-            onDismissRequest = { logToDelete = null },
+            onDismissRequest = onDismissDeleteLog,
             icon = {
                 Icon(
                     imageVector = Icons.Default.Delete,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
+                    tint = MaterialTheme.colorScheme.error
                 )
             },
-            title = { Text(text = "Hapus aktivitas?") },
-            text = { Text(text = "Aktivitas workout ini akan dihapus dari riwayat.") },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        logToDelete?.let { onDeleteLog(it) }
-                        logToDelete = null
-                    }
-                ) {
-                    Text(text = "Ya, hapus")
+            title = {
+                Text(
+                    text = "Hapus aktivitas",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = "Aktivitas workout ini akan dihapus dari riwayat kamu.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "${logToDelete.workout} · ${logToDelete.date} · ${logToDelete.time}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
                 }
             },
-            dismissButton = {
-                TextButton(onClick = { logToDelete = null }) {
-                    Text(text = "Batal")
+            shape = RoundedCornerShape(22.dp),
+            containerColor = MaterialTheme.colorScheme.surface,
+            confirmButton = {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onDismissDeleteLog,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(text = "Batal")
+                    }
+                    Button(
+                        onClick = onDeleteLog,
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error,
+                            contentColor = MaterialTheme.colorScheme.onError
+                        )
+                    ) {
+                        Text(text = "Hapus")
+                    }
                 }
             }
         )
@@ -183,7 +256,7 @@ fun DashboardScreen(
 
     if (showDeleteAllDialog) {
         AlertDialog(
-            onDismissRequest = { showDeleteAllDialog = false },
+            onDismissRequest = onDismissDeleteAll,
             icon = {
                 Icon(
                     imageVector = Icons.Default.DeleteForever,
@@ -191,21 +264,49 @@ fun DashboardScreen(
                     tint = MaterialTheme.colorScheme.error
                 )
             },
-            title = { Text(text = "Hapus semua aktivitas?") },
-            text = { Text(text = "Semua riwayat workout akan hilang dan tidak dapat dikembalikan.") },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        onDeleteAllLogs()
-                        showDeleteAllDialog = false
-                    }
-                ) {
-                    Text(text = "Ya, hapus")
+            title = {
+                Text(
+                    text = "Bersihkan riwayat",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = "Semua riwayat workout akan dihapus permanen.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "Tindakan ini tidak dapat dibatalkan.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
                 }
             },
-            dismissButton = {
-                TextButton(onClick = { showDeleteAllDialog = false }) {
-                    Text(text = "Batal")
+            shape = RoundedCornerShape(22.dp),
+            containerColor = MaterialTheme.colorScheme.surface,
+            confirmButton = {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onDismissDeleteAll,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(text = "Batal")
+                    }
+                    Button(
+                        onClick = onDeleteAll,
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error,
+                            contentColor = MaterialTheme.colorScheme.onError
+                        )
+                    ) {
+                        Text(text = "Hapus semua")
+                    }
                 }
             }
         )
@@ -213,21 +314,42 @@ fun DashboardScreen(
 
     selectedLog?.let { log ->
         AlertDialog(
-            onDismissRequest = { selectedLog = null },
+            onDismissRequest = onDismissSelectedLog,
             confirmButton = {
-                TextButton(onClick = { selectedLog = null }) {
+                Button(
+                    onClick = onDismissSelectedLog,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
+                ) {
                     Text(text = "Tutup")
                 }
             },
-            title = { Text(text = log.workout) },
+            shape = RoundedCornerShape(22.dp),
+            containerColor = MaterialTheme.colorScheme.surface,
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.AccessibilityNew,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            },
+            title = {
+                Text(
+                    text = log.workout,
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                )
+            },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     if (log.imageUri != null) {
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(180.dp),
-                            shape = RoundedCornerShape(12.dp),
+                            shape = RoundedCornerShape(16.dp),
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                         ) {
                             Image(
@@ -239,11 +361,49 @@ fun DashboardScreen(
                         }
                     }
 
-                    Text(text = "Tanggal: ${log.date} - ${log.time}")
-                    Text(text = "Durasi: ${"%.1f".format(log.durationMinutes)} menit")
-                    Text(text = "Kalori: ${"%.0f".format(log.calories)} kcal")
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(
+                            text = "Tanggal",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "${log.date} · ${log.time}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        InfoPill(label = "Durasi", value = "${"%.1f".format(log.durationMinutes)} menit")
+                        InfoPill(label = "Kalori", value = "${"%.0f".format(log.calories)} kcal")
+                    }
                 }
             }
+        )
+    }
+}
+
+@Composable
+private fun InfoPill(label: String, value: String) {
+    Column(
+        modifier = Modifier
+            .background(
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                shape = RoundedCornerShape(12.dp)
+            )
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Bold
         )
     }
 }
