@@ -99,6 +99,7 @@ class WorkoutViewModel(private val repository: WorkoutRepository) : ViewModel() 
         )
         val updatedLogs = repository.addLog(log)
         _logs.value = updatedLogs
+        uploadLogToSupabase(log)
         resetTimer()
         return log
     }
@@ -106,6 +107,7 @@ class WorkoutViewModel(private val repository: WorkoutRepository) : ViewModel() 
     fun deleteLog(log: WorkoutLog) {
         val updatedLogs = repository.deleteLog(log)
         _logs.value = updatedLogs
+        deleteLogFromSupabase(log)
     }
 
     fun clearLogs() {
@@ -135,6 +137,34 @@ class WorkoutViewModel(private val repository: WorkoutRepository) : ViewModel() 
     private fun resetTimer() {
         timerJob?.cancel()
         _timerState.value = TimerState()
+    }
+
+    private fun uploadLogToSupabase(log: WorkoutLog) {
+        viewModelScope.launch {
+            val result = try {
+                repository.uploadLogToApi(log)
+            } catch (error: Exception) {
+                Result.failure(error)
+            }
+
+            result.onFailure { error ->
+                println("Failed to upload log to Supabase: ${error.message}")
+            }
+        }
+    }
+
+    private fun deleteLogFromSupabase(log: WorkoutLog) {
+        viewModelScope.launch {
+            val result = try {
+                repository.deleteLogFromApi(log.timestamp)
+            } catch (error: Exception) {
+                Result.failure(error)
+            }
+
+            result.onFailure { error ->
+                println("Failed to delete log from Supabase: ${error.message}")
+            }
+        }
     }
 
     data class TimerState(
