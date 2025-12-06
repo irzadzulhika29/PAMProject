@@ -16,8 +16,6 @@ import com.example.pamproject.ui.screen.DashboardScreen
 import com.example.pamproject.ui.screen.WorkoutSessionScreen
 import com.example.pamproject.viewmodel.WorkoutViewModel
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 
 @Composable
 fun AppNavigation(
@@ -64,18 +62,13 @@ fun AppNavigation(
             val workoutId = backStackEntry.arguments?.getInt("workoutId")
             val workout = workoutId?.let { workoutViewModel.getWorkoutById(it) }
 
-            var pendingImageUri by remember { mutableStateOf<String?>(null) }
-
             WorkoutSessionScreen(
                 workout = workout,
                 timerState = timerState,
                 onStart = workoutViewModel::startTimer,
                 onPause = workoutViewModel::pauseTimer,
                 onResume = workoutViewModel::resumeTimer,
-                onFinish = { uri ->
-                    val result = workoutViewModel.finishWorkout(uri)
-                    result
-                },
+                onFinish = { uri -> workoutViewModel.finishWorkout(uri) },
                 onBack = {
                     workoutViewModel.cancelSession()
                     navController.navigateUp()

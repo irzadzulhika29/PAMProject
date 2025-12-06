@@ -78,7 +78,7 @@ fun WorkoutSessionScreen(
     onStart: () -> Unit,
     onPause: () -> Unit,
     onResume: () -> Unit,
-    onFinish: (String?) -> WorkoutLog?,
+    onFinish: suspend (String?) -> WorkoutLog?,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -274,15 +274,15 @@ fun WorkoutSessionScreen(
                     // Tombol Simpan dengan foto
                     Button(
                         onClick = {
-                            val result = onFinish(selectedImageUri)
-                            result?.let {
-                                scope.launch {
+                            scope.launch {
+                                val result = onFinish(selectedImageUri)
+                                result?.let {
                                     snackbarHostState.showSnackbar(
                                         message = "Durasi: ${"%.1f".format(it.durationMinutes)} menit · ${it.calories.toInt()} kcal"
                                     )
                                 }
+                                onBack()
                             }
-                            onBack()
                         },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -310,15 +310,15 @@ fun WorkoutSessionScreen(
                     if (selectedImageUri != null) {
                         OutlinedButton(
                             onClick = {
-                                val result = onFinish(null)
-                                result?.let {
-                                    scope.launch {
+                                scope.launch {
+                                    val result = onFinish(null)
+                                    result?.let {
                                         snackbarHostState.showSnackbar(
                                             message = "Durasi: ${"%.1f".format(it.durationMinutes)} menit · ${it.calories.toInt()} kcal"
                                         )
                                     }
+                                    onBack()
                                 }
-                                onBack()
                             },
                             modifier = Modifier
                                 .fillMaxWidth()

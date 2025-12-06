@@ -8,6 +8,9 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 object RetrofitClient {
     const val BASE_URL = "https://ctzndtrcxiqjalyqwkqj.supabase.co/rest/v1/"
+    const val STORAGE_BASE_URL = "https://ctzndtrcxiqjalyqwkqj.supabase.co/storage/v1"
+    const val PUBLIC_STORAGE_URL = "$STORAGE_BASE_URL/object/public"
+    const val WORKOUT_IMAGE_BUCKET = "workout-images"
     const val API_KEY = "sb_publishable_BKrLoFXim8ILj1sJqjOcIA_oK9itaQK"
 
     private val loggingInterceptor = HttpLoggingInterceptor().apply {

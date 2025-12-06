@@ -1,6 +1,8 @@
 package com.example.pamproject.api
 
 import android.content.Context
+import android.net.Uri
+import android.webkit.MimeTypeMap
 import com.android.volley.Request
 import com.android.volley.RequestQueue
 import com.android.volley.toolbox.JsonObjectRequest
@@ -9,15 +11,30 @@ import com.example.pamproject.model.WorkoutLog
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.logging.HttpLoggingInterceptor
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.UUID
 
 class WorkoutRemoteDataSource(
     context: Context,
     private val gson: Gson = Gson()
 ) {
     private val requestQueue: RequestQueue = Volley.newRequestQueue(context.applicationContext)
+    private val appContext = context.applicationContext
+
+    private val uploadClient: OkHttpClient = OkHttpClient.Builder()
+        .addInterceptor(
+            HttpLoggingInterceptor().apply {
+                level = HttpLoggingInterceptor.Level.BODY
+            }
+        )
+        .build()
 
     suspend fun fetchWithRetrofit(): Result<List<WorkoutLog>> = withContext(Dispatchers.IO) {
         runCatching { RetrofitClient.apiService.getWorkoutLogs() }
@@ -78,4 +95,37 @@ class WorkoutRemoteDataSource(
 
         requestQueue.add(request)
     }
+
+    suspend fun uploadImageToSupabase(imageUri: Uri): Result<String> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val contentResolver = appContext.contentResolver
+                val mimeType = contentResolver.getType(imageUri) ?: "image/jpeg"
+                val extension = MimeTypeMap.getSingleton()
+                    .getExtensionFromMimeType(mimeType)
+                    ?: "jpg"
+
+                val fileName = "workout-${System.currentTimeMillis()}-${UUID.randomUUID()}.$extension"
+                val bytes = contentResolver.openInputStream(imageUri)
+                    ?.use { it.readBytes() }
+                    ?: error("Tidak dapat membaca file gambar")
+
+                val requestBody = bytes.toRequestBody(mimeType.toMediaType())
+                val request = Request.Builder()
+                    .url("${RetrofitClient.STORAGE_BASE_URL}/object/${RetrofitClient.WORKOUT_IMAGE_BUCKET}/$fileName")
+                    .addHeader("apikey", RetrofitClient.API_KEY)
+                    .addHeader("Authorization", "Bearer ${RetrofitClient.API_KEY}")
+                    .addHeader("Content-Type", mimeType)
+                    .post(requestBody)
+                    .build()
+
+                uploadClient.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) {
+                        error("Upload gagal: ${response.code} ${response.message}")
+                    }
+                }
+
+                "${RetrofitClient.PUBLIC_STORAGE_URL}/${RetrofitClient.WORKOUT_IMAGE_BUCKET}/$fileName"
+            }
+        }
 }
