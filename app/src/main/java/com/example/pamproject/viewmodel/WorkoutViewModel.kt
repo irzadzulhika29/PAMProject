@@ -141,19 +141,29 @@ class WorkoutViewModel(private val repository: WorkoutRepository) : ViewModel() 
 
     private fun uploadLogToSupabase(log: WorkoutLog) {
         viewModelScope.launch {
-            repository.uploadLogToApi(log)
-                .onFailure { error ->
-                    println("Failed to upload log to Supabase: ${error.message}")
-                }
+            val result = try {
+                repository.uploadLogToApi(log)
+            } catch (error: Exception) {
+                Result.failure(error)
+            }
+
+            result.onFailure { error ->
+                println("Failed to upload log to Supabase: ${error.message}")
+            }
         }
     }
 
     private fun deleteLogFromSupabase(log: WorkoutLog) {
         viewModelScope.launch {
-            repository.deleteLogFromApi(log.timestamp)
-                .onFailure { error ->
-                    println("Failed to delete log from Supabase: ${error.message}")
-                }
+            val result = try {
+                repository.deleteLogFromApi(log.timestamp)
+            } catch (error: Exception) {
+                Result.failure(error)
+            }
+
+            result.onFailure { error ->
+                println("Failed to delete log from Supabase: ${error.message}")
+            }
         }
     }
 
