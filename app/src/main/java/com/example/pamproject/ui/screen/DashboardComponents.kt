@@ -22,16 +22,18 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.DirectionsBike
+import androidx.compose.material.icons.automirrored.filled.DirectionsRun
+import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.AccessibilityNew
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteForever
-import androidx.compose.material.icons.filled.DirectionsBike
-import androidx.compose.material.icons.filled.DirectionsRun
-import androidx.compose.material.icons.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.SelfImprovement
 import androidx.compose.material.icons.filled.Whatshot
@@ -655,10 +657,131 @@ internal fun formatMinutes(minutes: Double): String {
 
 private fun String.getWorkoutIcon() = when (lowercase()) {
     "yoga" -> Icons.Default.SelfImprovement
-    "running" -> Icons.Default.DirectionsRun
+    "running" -> Icons.AutoMirrored.Filled.DirectionsRun
     "stretching" -> Icons.Default.AccessibilityNew
     "hiit" -> Icons.Default.Bolt
-    "cycling" -> Icons.Default.DirectionsBike
-    "walking" -> Icons.Default.DirectionsWalk
+    "cycling" -> Icons.AutoMirrored.Filled.DirectionsBike
+    "walking" -> Icons.AutoMirrored.Filled.DirectionsWalk
     else -> Icons.Default.FitnessCenter
 }
+
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+fun ApiClientSelectorCard(
+    currentApiClient: com.example.pamproject.data.ApiClientType,
+    onApiClientChange: (com.example.pamproject.data.ApiClientType) -> Unit,
+    isLoading: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val expandedState = androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    val apiClients = com.example.pamproject.data.ApiClientType.entries
+
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Bolt,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+                Text(
+                    text = "REST API Client",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Text(
+                text = "Pilih library untuk komunikasi client-server",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            // Simple dropdown using clickable card instead of ExposedDropdownMenu
+            // This is more compatible across Material3 versions
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(enabled = !isLoading) { expandedState.value = true },
+                shape = RoundedCornerShape(8.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.background),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = when (currentApiClient) {
+                            com.example.pamproject.data.ApiClientType.RETROFIT -> "Retrofit + GSON"
+                            com.example.pamproject.data.ApiClientType.HTTP_URL_CONNECTION -> "HttpURLConnection"
+                            com.example.pamproject.data.ApiClientType.VOLLEY -> "Volley"
+                        },
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Icon(
+                        imageVector = if (expandedState.value)
+                            Icons.Default.KeyboardArrowUp
+                        else
+                            Icons.Default.KeyboardArrowDown,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            androidx.compose.material3.DropdownMenu(
+                expanded = expandedState.value,
+                onDismissRequest = { expandedState.value = false }
+            ) {
+                apiClients.forEach { client ->
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = {
+                            Column {
+                                Text(
+                                    text = when (client) {
+                                        com.example.pamproject.data.ApiClientType.RETROFIT -> "Retrofit + GSON"
+                                        com.example.pamproject.data.ApiClientType.HTTP_URL_CONNECTION -> "HttpURLConnection"
+                                        com.example.pamproject.data.ApiClientType.VOLLEY -> "Volley"
+                                    },
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Text(
+                                    text = when (client) {
+                                        com.example.pamproject.data.ApiClientType.RETROFIT -> "Type-safe HTTP client with annotations"
+                                        com.example.pamproject.data.ApiClientType.HTTP_URL_CONNECTION -> "Native Java HTTP library"
+                                        com.example.pamproject.data.ApiClientType.VOLLEY -> "Android HTTP library by Google"
+                                    },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        },
+                        onClick = {
+                            onApiClientChange(client)
+                            expandedState.value = false
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
