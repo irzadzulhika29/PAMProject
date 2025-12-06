@@ -3,39 +3,33 @@ package com.example.pamproject.navigation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import com.example.pamproject.data.WorkoutRepository
 import com.example.pamproject.ui.screen.DashboardScreen
 import com.example.pamproject.ui.screen.WorkoutSessionScreen
 import com.example.pamproject.viewmodel.WorkoutViewModel
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
 
 @Composable
 fun AppNavigation(
     navController: NavHostController,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    workoutViewModel: WorkoutViewModel
 ) {
-    val context = LocalContext.current
-    val repository = remember(context) { WorkoutRepository(context) }
-    val workoutViewModel: WorkoutViewModel = viewModel(
-        factory = WorkoutViewModel.provideFactory(repository)
-    )
-
     val stats by workoutViewModel.todayStats.collectAsState()
     val weeklyProgress by workoutViewModel.weeklyProgress.collectAsState()
     val logs by workoutViewModel.logs.collectAsState()
     val timerState by workoutViewModel.timerState.collectAsState()
     val isLoading by workoutViewModel.isLoading.collectAsState()
     val currentApiClient by workoutViewModel.currentApiClient.collectAsState()
+
+    LaunchedEffect(Unit) {
+        workoutViewModel.loadLogsFromApi()
+    }
 
     NavHost(
         navController = navController,
@@ -69,8 +63,6 @@ fun AppNavigation(
         ) { backStackEntry ->
             val workoutId = backStackEntry.arguments?.getInt("workoutId")
             val workout = workoutId?.let { workoutViewModel.getWorkoutById(it) }
-
-            var pendingImageUri by remember { mutableStateOf<String?>(null) }
 
             WorkoutSessionScreen(
                 workout = workout,

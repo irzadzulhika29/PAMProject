@@ -1,7 +1,12 @@
 package com.example.pamproject.api
 
 import retrofit2.Response
-import retrofit2.http.*
+import retrofit2.http.Body
+import retrofit2.http.DELETE
+import retrofit2.http.GET
+import retrofit2.http.POST
+import retrofit2.http.Query
+import retrofit2.http.Headers
 
 /**
  * Retrofit API Service interface for Supabase REST API
@@ -15,8 +20,6 @@ interface ApiService {
      */
     @GET("rest/v1/${ApiConfig.TABLE_WORKOUT_LOGS}")
     suspend fun getAllWorkoutLogs(
-        @Header("apikey") apiKey: String = ApiConfig.SUPABASE_KEY,
-        @Header("Authorization") authorization: String = "Bearer ${ApiConfig.SUPABASE_KEY}",
         @Query("select") select: String = "*",
         @Query("order") order: String = "timestamp.desc"
     ): Response<List<WorkoutLogDto>>
@@ -25,12 +28,9 @@ interface ApiService {
      * POST a new workout log to Supabase
      * Uses thread/coroutine for async communication
      */
+    @Headers("Prefer: return=representation")
     @POST("rest/v1/${ApiConfig.TABLE_WORKOUT_LOGS}")
     suspend fun createWorkoutLog(
-        @Header("apikey") apiKey: String = ApiConfig.SUPABASE_KEY,
-        @Header("Authorization") authorization: String = "Bearer ${ApiConfig.SUPABASE_KEY}",
-        @Header("Content-Type") contentType: String = "application/json",
-        @Header("Prefer") prefer: String = "return=representation",
         @Body workoutLog: CreateWorkoutLogRequest
     ): Response<List<WorkoutLogDto>>
 
@@ -40,9 +40,7 @@ interface ApiService {
      */
     @DELETE("rest/v1/${ApiConfig.TABLE_WORKOUT_LOGS}")
     suspend fun deleteWorkoutLog(
-        @Header("apikey") apiKey: String = ApiConfig.SUPABASE_KEY,
-        @Header("Authorization") authorization: String = "Bearer ${ApiConfig.SUPABASE_KEY}",
-        @Query("timestamp") timestamp: String
+        @Query("timestamp") timestampFilter: String
     ): Response<Unit>
 
     /**
@@ -51,8 +49,6 @@ interface ApiService {
      */
     @DELETE("rest/v1/${ApiConfig.TABLE_WORKOUT_LOGS}")
     suspend fun deleteAllWorkoutLogs(
-        @Header("apikey") apiKey: String = ApiConfig.SUPABASE_KEY,
-        @Header("Authorization") authorization: String = "Bearer ${ApiConfig.SUPABASE_KEY}",
         @Query("id") idFilter: String = "neq.null"  // This deletes all rows where id is not null
     ): Response<Unit>
 }

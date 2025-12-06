@@ -1,6 +1,7 @@
 package com.example.pamproject.api
 
 import com.google.gson.GsonBuilder
+import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -13,11 +14,21 @@ import java.util.concurrent.TimeUnit
  */
 object RetrofitClient {
 
+    private val supabaseAuthInterceptor = Interceptor { chain ->
+        val request = chain.request().newBuilder()
+            .addHeader("apikey", ApiConfig.SUPABASE_KEY)
+            .addHeader("Authorization", "Bearer ${ApiConfig.SUPABASE_KEY}")
+            .addHeader("Content-Type", "application/json")
+            .build()
+        chain.proceed(request)
+    }
+
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
         level = HttpLoggingInterceptor.Level.BODY
     }
 
     private val okHttpClient = OkHttpClient.Builder()
+        .addInterceptor(supabaseAuthInterceptor)
         .addInterceptor(loggingInterceptor)
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)

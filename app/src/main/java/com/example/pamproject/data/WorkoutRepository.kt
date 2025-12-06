@@ -197,7 +197,7 @@ class WorkoutRepository(private val context: Context) {
 
     private suspend fun deleteLogWithRetrofit(log: WorkoutLog): List<WorkoutLog> {
         Log.d(TAG, "Deleting log with Retrofit on thread: ${Thread.currentThread().name}")
-        val response = retrofitService.deleteWorkoutLog(timestamp = "eq.${log.timestamp}")
+        val response = retrofitService.deleteWorkoutLog(timestampFilter = "eq.${log.timestamp}")
         return if (response.isSuccessful) {
             loadLogsFromApi()
         } else {
