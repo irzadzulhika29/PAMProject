@@ -1,6 +1,7 @@
 package com.example.pamproject.data
 
 import android.content.Context
+import com.example.pamproject.api.WorkoutRemoteDataSource
 import com.example.pamproject.model.DailyProgress
 import com.example.pamproject.model.DailyStats
 import com.example.pamproject.model.WorkoutLog
@@ -16,6 +17,7 @@ import java.util.Locale
 class WorkoutRepository(private val context: Context) {
     private val sharedPreferences =
         context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+    private val remoteDataSource = WorkoutRemoteDataSource(context)
 
     fun loadLogs(): List<WorkoutLog> {
         val raw = sharedPreferences.getString(KEY_WORKOUT_LOGS, null) ?: return emptyList()
@@ -55,6 +57,23 @@ class WorkoutRepository(private val context: Context) {
         return emptyList()
     }
 
+    suspend fun fetchLogsFromApi(): Result<List<WorkoutLog>> =
+        remoteDataSource.fetchWithRetrofit()
+
+    suspend fun uploadLogToApi(log: WorkoutLog): Result<List<WorkoutLog>> =
+        remoteDataSource.pushWithRetrofit(log)
+
+    suspend fun deleteLogFromApi(timestamp: Long): Result<Unit> =
+        remoteDataSource.deleteWithRetrofit(timestamp)
+
+    fun uploadLogWithVolley(log: WorkoutLog, callback: (Result<Unit>) -> Unit) {
+        remoteDataSource.pushWithVolley(log, callback)
+    }
+
+    fun uploadLogWithHttpUrlConnection(log: WorkoutLog, callback: (Result<Unit>) -> Unit) {
+        remoteDataSource.pushWithHttpUrlConnection(log, callback)
+    }
+
     fun calculateTodayStats(logs: List<WorkoutLog>): DailyStats {
         val today = LocalDate.now().toString()
         val todayLogs = logs.filter { it.date == today }
@@ -71,7 +90,16 @@ class WorkoutRepository(private val context: Context) {
         val today = LocalDate.now()
         return (0 until days).map { index ->
             val date = today.minusDays((days - 1 - index).toLong())
-            val label = date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault())
+            val label = when (date.dayOfWeek.value) {
+                1 -> "Mon"
+                2 -> "Tue"
+                3 -> "Wed"
+                4 -> "Thu"
+                5 -> "Fri"
+                6 -> "Sat"
+                7 -> "Sun"
+                else -> "---"
+            }
             val logsForDate = logs.filter { it.date == date.toString() }
 
             DailyProgress(

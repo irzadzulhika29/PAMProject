@@ -1,13 +1,15 @@
 package com.example.pamproject.model
 
+import com.google.gson.annotations.SerializedName
+
 data class WorkoutLog(
     val date: String,
     val time: String,
     val workout: String,
-    val durationMinutes: Double,
+    @SerializedName("duration_minutes") val durationMinutes: Double,
     val calories: Double,
     val timestamp: Long = System.currentTimeMillis(),
-    val imageUri: String? = null
+    @SerializedName("image_uri") val imageUri: String? = null
 )
 
 data class DailyStats(
