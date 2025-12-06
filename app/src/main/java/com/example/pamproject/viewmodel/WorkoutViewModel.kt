@@ -28,6 +28,10 @@ class WorkoutViewModel(private val repository: WorkoutRepository) : ViewModel() 
     private val _logs = MutableStateFlow(repository.loadLogs())
     val logs: StateFlow<List<WorkoutLog>> = _logs.asStateFlow()
 
+    init {
+        refreshFromServer()
+    }
+
     val todayStats: StateFlow<DailyStats> = _logs
         .map { repository.calculateTodayStats(it) }
         .stateIn(
@@ -99,6 +103,10 @@ class WorkoutViewModel(private val repository: WorkoutRepository) : ViewModel() 
         )
         val updatedLogs = repository.addLog(log)
         _logs.value = updatedLogs
+        viewModelScope.launch {
+            repository.uploadLogWithRetrofit(log)
+            repository.uploadLogWithVolley(log)
+        }
         resetTimer()
         return log
     }
@@ -114,6 +122,34 @@ class WorkoutViewModel(private val repository: WorkoutRepository) : ViewModel() 
     }
 
     fun getWorkoutById(id: Int): Workout? = workouts.find { it.id == id }
+
+    private fun refreshFromServer() {
+        viewModelScope.launch {
+            val remoteLogs = repository.fetchLogsWithRetrofit()
+            if (remoteLogs.isNotEmpty()) {
+                repository.saveLogs(remoteLogs)
+                _logs.value = remoteLogs
+            }
+
+            repository.fetchLogsWithHttpUrlConnection(
+                onSuccess = { logsFromHttp ->
+                    viewModelScope.launch {
+                        repository.saveLogs(logsFromHttp)
+                        _logs.value = logsFromHttp
+                    }
+                },
+                onError = { /* Ignored for demo usage */ }
+            )
+
+            repository.fetchLogsWithVolley(
+                onSuccess = { volleyLogs ->
+                    _logs.value = volleyLogs
+                    repository.saveLogs(volleyLogs)
+                },
+                onError = { /* Ignored for demo usage */ }
+            )
+        }
+    }
 
     private fun calculateCalories(met: Double, durationMinutes: Double): Double {
         val defaultWeightKg = 70.0

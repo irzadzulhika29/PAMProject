@@ -1,21 +1,38 @@
 package com.example.pamproject.data
 
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
+import com.android.volley.Request
+import com.android.volley.toolbox.JsonArrayRequest
+import com.android.volley.toolbox.Volley
+import com.example.pamproject.api.RetrofitClient
+import com.example.pamproject.api.SupabaseConfig
 import com.example.pamproject.model.DailyProgress
 import com.example.pamproject.model.DailyStats
+import com.example.pamproject.model.NetworkWorkoutLog
 import com.example.pamproject.model.WorkoutLog
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
+import java.net.HttpURLConnection
+import java.net.URL
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
-import java.time.format.TextStyle
 import java.util.Locale
+import kotlin.concurrent.thread
 
 class WorkoutRepository(private val context: Context) {
     private val sharedPreferences =
         context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+    private val gson = Gson()
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private val requestQueue by lazy { Volley.newRequestQueue(context.applicationContext) }
 
     fun loadLogs(): List<WorkoutLog> {
         val raw = sharedPreferences.getString(KEY_WORKOUT_LOGS, null) ?: return emptyList()
@@ -53,6 +70,101 @@ class WorkoutRepository(private val context: Context) {
     fun clearLogs(): List<WorkoutLog> {
         saveLogs(emptyList())
         return emptyList()
+    }
+
+    suspend fun fetchLogsWithRetrofit(): List<WorkoutLog> = withContext(Dispatchers.IO) {
+        runCatching {
+            RetrofitClient.apiService
+                .getWorkoutLogs(
+                    apiKey = SupabaseConfig.API_KEY,
+                    bearer = SupabaseConfig.AUTH_HEADER
+                )
+                .map(NetworkWorkoutLog::toDomain)
+        }.getOrElse { emptyList() }
+    }
+
+    fun fetchLogsWithHttpUrlConnection(
+        onSuccess: (List<WorkoutLog>) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        thread {
+            try {
+                val url = URL("${SupabaseConfig.BASE_REST_URL}?select=*")
+                val connection = (url.openConnection() as HttpURLConnection).apply {
+                    requestMethod = "GET"
+                    setRequestProperty("apikey", SupabaseConfig.API_KEY)
+                    setRequestProperty("Authorization", SupabaseConfig.AUTH_HEADER)
+                    setRequestProperty("Accept", "application/json")
+                    connectTimeout = 15_000
+                    readTimeout = 15_000
+                }
+
+                connection.inputStream.use { inputStream ->
+                    val response = inputStream.bufferedReader().readText()
+                    val type = object : TypeToken<List<NetworkWorkoutLog>>() {}.type
+                    val parsed = gson.fromJson<List<NetworkWorkoutLog>>(response, type)
+                    mainHandler.post { onSuccess(parsed.map(NetworkWorkoutLog::toDomain)) }
+                }
+            } catch (e: Exception) {
+                mainHandler.post { onError(e.message ?: "Unknown error") }
+            }
+        }
+    }
+
+    fun fetchLogsWithVolley(
+        onSuccess: (List<WorkoutLog>) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        val request = object : JsonArrayRequest(
+            Request.Method.GET,
+            "${SupabaseConfig.BASE_REST_URL}?select=*",
+            null,
+            { response ->
+                val type = object : TypeToken<List<NetworkWorkoutLog>>() {}.type
+                val parsed: List<NetworkWorkoutLog> = gson.fromJson(response.toString(), type)
+                onSuccess(parsed.map(NetworkWorkoutLog::toDomain))
+            },
+            { error -> onError(error.message ?: "Volley error") }
+        ) {
+            override fun getHeaders(): MutableMap<String, String> = mutableMapOf(
+                "apikey" to SupabaseConfig.API_KEY,
+                "Authorization" to SupabaseConfig.AUTH_HEADER,
+                "Accept" to "application/json"
+            )
+        }
+        requestQueue.add(request)
+    }
+
+    suspend fun uploadLogWithRetrofit(log: WorkoutLog) = withContext(Dispatchers.IO) {
+        runCatching {
+            RetrofitClient.apiService.postWorkoutLog(
+                apiKey = SupabaseConfig.API_KEY,
+                bearer = SupabaseConfig.AUTH_HEADER,
+                log = NetworkWorkoutLog.fromDomain(log)
+            )
+        }
+    }
+
+    fun uploadLogWithVolley(log: WorkoutLog, onResult: (Boolean) -> Unit = {}) {
+        val payload = gson.toJson(NetworkWorkoutLog.fromDomain(log))
+        val request = object : JsonArrayRequest(
+            Request.Method.POST,
+            SupabaseConfig.BASE_REST_URL,
+            null,
+            { onResult(true) },
+            { onResult(false) }
+        ) {
+            override fun getBody(): ByteArray = payload.toByteArray()
+
+            override fun getBodyContentType(): String = "application/json"
+
+            override fun getHeaders(): MutableMap<String, String> = mutableMapOf(
+                "apikey" to SupabaseConfig.API_KEY,
+                "Authorization" to SupabaseConfig.AUTH_HEADER,
+                "Prefer" to "return=representation"
+            )
+        }
+        requestQueue.add(request)
     }
 
     fun calculateTodayStats(logs: List<WorkoutLog>): DailyStats {
