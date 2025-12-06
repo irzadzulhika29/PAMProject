@@ -1,5 +1,6 @@
 package com.example.pamproject.viewmodel
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -9,6 +10,7 @@ import com.example.pamproject.model.DailyStats
 import com.example.pamproject.model.Workout
 import com.example.pamproject.model.WorkoutData
 import com.example.pamproject.model.WorkoutLog
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,6 +19,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -77,7 +80,7 @@ class WorkoutViewModel(private val repository: WorkoutRepository) : ViewModel() 
         startTicker()
     }
 
-    fun finishWorkout(imageUri: String? = null): WorkoutLog? {
+    suspend fun finishWorkout(imageUri: String? = null): WorkoutLog? {
         val workout = _timerState.value.selectedWorkout ?: return null
         val elapsedSeconds = _timerState.value.elapsedSeconds
         if (elapsedSeconds <= 0) {
@@ -88,6 +91,7 @@ class WorkoutViewModel(private val repository: WorkoutRepository) : ViewModel() 
         val durationMinutes = elapsedSeconds / 60.0
         val calories = calculateCalories(workout.met, durationMinutes)
         val currentTime = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"))
+        val uploadedImageUri = imageUri?.let { uploadWorkoutImage(it) }
         val log = WorkoutLog(
             date = LocalDate.now().toString(),
             time = currentTime,
@@ -95,9 +99,9 @@ class WorkoutViewModel(private val repository: WorkoutRepository) : ViewModel() 
             durationMinutes = durationMinutes,
             calories = calories,
             timestamp = System.currentTimeMillis(),
-            imageUri = imageUri
+            imageUri = uploadedImageUri ?: imageUri
         )
-        val updatedLogs = repository.addLog(log)
+        val updatedLogs = withContext(Dispatchers.IO) { repository.addLog(log) }
         _logs.value = updatedLogs
         uploadLogToSupabase(log)
         resetTimer()
@@ -108,6 +112,21 @@ class WorkoutViewModel(private val repository: WorkoutRepository) : ViewModel() 
         val updatedLogs = repository.deleteLog(log)
         _logs.value = updatedLogs
         deleteLogFromSupabase(log)
+    }
+
+    private suspend fun uploadWorkoutImage(imageUri: String): String? {
+        val uri = runCatching { Uri.parse(imageUri) }.getOrNull() ?: return null
+        val result = try {
+            repository.uploadWorkoutImage(uri)
+        } catch (error: Exception) {
+            Result.failure(error)
+        }
+
+        result.onFailure { error ->
+            println("Failed to upload image to Supabase: ${error.message}")
+        }
+
+        return result.getOrNull()
     }
 
     fun clearLogs() {

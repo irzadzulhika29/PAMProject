@@ -1,6 +1,7 @@
 package com.example.pamproject.data
 
 import android.content.Context
+import android.net.Uri
 import com.example.pamproject.api.WorkoutRemoteDataSource
 import com.example.pamproject.model.DailyProgress
 import com.example.pamproject.model.DailyStats
@@ -65,6 +66,9 @@ class WorkoutRepository(private val context: Context) {
 
     suspend fun deleteLogFromApi(timestamp: Long): Result<Unit> =
         remoteDataSource.deleteWithRetrofit(timestamp)
+
+    suspend fun uploadWorkoutImage(imageUri: Uri): Result<String> =
+        remoteDataSource.uploadImageToSupabase(imageUri)
 
     fun uploadLogWithVolley(log: WorkoutLog, callback: (Result<Unit>) -> Unit) {
         remoteDataSource.pushWithVolley(log, callback)
