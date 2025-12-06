@@ -16,6 +16,8 @@ import com.example.pamproject.ui.screen.DashboardScreen
 import com.example.pamproject.ui.screen.WorkoutSessionScreen
 import com.example.pamproject.viewmodel.WorkoutViewModel
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 
 @Composable
 fun AppNavigation(
@@ -29,6 +31,7 @@ fun AppNavigation(
     )
 
     val stats by workoutViewModel.todayStats.collectAsState()
+    val weeklyProgress by workoutViewModel.weeklyProgress.collectAsState()
     val logs by workoutViewModel.logs.collectAsState()
     val timerState by workoutViewModel.timerState.collectAsState()
 
@@ -40,12 +43,15 @@ fun AppNavigation(
         composable(route = Screen.Dashboard.route) {
             DashboardScreen(
                 stats = stats,
+                progress = weeklyProgress,
                 workouts = workoutViewModel.workouts,
                 logs = logs,
                 onWorkoutClick = { workoutId ->
                     workoutViewModel.startSession(workoutId)
                     navController.navigate(Screen.Session.createRoute(workoutId))
-                }
+                },
+                onDeleteLog = workoutViewModel::deleteLog,
+                onDeleteAllLogs = workoutViewModel::clearLogs
             )
         }
 
@@ -58,13 +64,18 @@ fun AppNavigation(
             val workoutId = backStackEntry.arguments?.getInt("workoutId")
             val workout = workoutId?.let { workoutViewModel.getWorkoutById(it) }
 
+            var pendingImageUri by remember { mutableStateOf<String?>(null) }
+
             WorkoutSessionScreen(
                 workout = workout,
                 timerState = timerState,
                 onStart = workoutViewModel::startTimer,
                 onPause = workoutViewModel::pauseTimer,
                 onResume = workoutViewModel::resumeTimer,
-                onFinish = workoutViewModel::finishWorkout,
+                onFinish = { uri ->
+                    val result = workoutViewModel.finishWorkout(uri)
+                    result
+                },
                 onBack = {
                     workoutViewModel.cancelSession()
                     navController.navigateUp()

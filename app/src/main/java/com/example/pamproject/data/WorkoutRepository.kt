@@ -1,6 +1,7 @@
 package com.example.pamproject.data
 
 import android.content.Context
+import com.example.pamproject.model.DailyProgress
 import com.example.pamproject.model.DailyStats
 import com.example.pamproject.model.WorkoutLog
 import org.json.JSONArray
@@ -9,6 +10,8 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
+import java.time.format.TextStyle
+import java.util.Locale
 
 class WorkoutRepository(private val context: Context) {
     private val sharedPreferences =
@@ -41,6 +44,17 @@ class WorkoutRepository(private val context: Context) {
         return updated
     }
 
+    fun deleteLog(log: WorkoutLog): List<WorkoutLog> {
+        val updated = loadLogs().filterNot { it.timestamp == log.timestamp }
+        saveLogs(updated)
+        return updated
+    }
+
+    fun clearLogs(): List<WorkoutLog> {
+        saveLogs(emptyList())
+        return emptyList()
+    }
+
     fun calculateTodayStats(logs: List<WorkoutLog>): DailyStats {
         val today = LocalDate.now().toString()
         val todayLogs = logs.filter { it.date == today }
@@ -51,6 +65,30 @@ class WorkoutRepository(private val context: Context) {
             totalCalories = totalCalories,
             streak = calculateStreak(logs)
         )
+    }
+
+    fun getRecentProgress(logs: List<WorkoutLog>, days: Int = 7): List<DailyProgress> {
+        val today = LocalDate.now()
+        return (0 until days).map { index ->
+            val date = today.minusDays((days - 1 - index).toLong())
+            val label = when (date.dayOfWeek.value) {
+                1 -> "Mon"
+                2 -> "Tue"
+                3 -> "Wed"
+                4 -> "Thu"
+                5 -> "Fri"
+                6 -> "Sat"
+                7 -> "Sun"
+                else -> "---"
+            }
+            val logsForDate = logs.filter { it.date == date.toString() }
+
+            DailyProgress(
+                dateLabel = label,
+                totalCalories = logsForDate.sumOf { it.calories },
+                totalDurationMinutes = logsForDate.sumOf { it.durationMinutes }
+            )
+        }
     }
 
     private fun calculateStreak(logs: List<WorkoutLog>): Int {
@@ -76,6 +114,7 @@ class WorkoutRepository(private val context: Context) {
         val date = optString("date", LocalDate.now().toString())
         val time = optString("time", "00:00")
         val storedTimestamp = optLong("timestamp", -1L)
+        val imageUri = optString("imageUri", null)
 
         // If no timestamp stored, create one from date + time
         val timestamp = if (storedTimestamp == -1L) {
@@ -97,7 +136,8 @@ class WorkoutRepository(private val context: Context) {
             workout = optString("workout"),
             durationMinutes = optDouble("duration"),
             calories = optDouble("calories"),
-            timestamp = timestamp
+            timestamp = timestamp,
+            imageUri = imageUri
         )
     }
 
@@ -109,6 +149,9 @@ class WorkoutRepository(private val context: Context) {
             put("duration", durationMinutes)
             put("calories", calories)
             put("timestamp", timestamp)
+            if (imageUri != null) {
+                put("imageUri", imageUri)
+            }
         }
     }
 

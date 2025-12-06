@@ -6,7 +6,8 @@ data class WorkoutLog(
     val workout: String,
     val durationMinutes: Double,
     val calories: Double,
-    val timestamp: Long = System.currentTimeMillis()
+    val timestamp: Long = System.currentTimeMillis(),
+    val imageUri: String? = null
 )
 
 data class DailyStats(
