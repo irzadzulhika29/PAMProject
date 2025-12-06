@@ -120,9 +120,14 @@ class WorkoutRepository(private val context: Context) {
             "${SupabaseConfig.BASE_REST_URL}?select=*",
             null,
             { response ->
-                val type = object : TypeToken<List<NetworkWorkoutLog>>() {}.type
-                val parsed: List<NetworkWorkoutLog> = gson.fromJson(response.toString(), type)
-                onSuccess(parsed.map(NetworkWorkoutLog::toDomain))
+                runCatching {
+                    val type = object : TypeToken<List<NetworkWorkoutLog>>() {}.type
+                    gson.fromJson<List<NetworkWorkoutLog>>(response.toString(), type)
+                }.onSuccess { parsed ->
+                    onSuccess(parsed.map(NetworkWorkoutLog::toDomain))
+                }.onFailure { error ->
+                    onError(error.message ?: "Volley parse error")
+                }
             },
             { error -> onError(error.message ?: "Volley error") }
         ) {
