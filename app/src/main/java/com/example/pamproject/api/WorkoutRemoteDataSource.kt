@@ -13,7 +13,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
-import okhttp3.Request
+import okhttp3.Request as OkHttpRequest
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.logging.HttpLoggingInterceptor
 import org.json.JSONObject
@@ -111,7 +111,7 @@ class WorkoutRemoteDataSource(
                     ?: error("Tidak dapat membaca file gambar")
 
                 val requestBody = bytes.toRequestBody(mimeType.toMediaType())
-                val request = Request.Builder()
+                val request = OkHttpRequest.Builder()
                     .url("${RetrofitClient.STORAGE_BASE_URL}/object/${RetrofitClient.WORKOUT_IMAGE_BUCKET}/$fileName")
                     .addHeader("apikey", RetrofitClient.API_KEY)
                     .addHeader("Authorization", "Bearer ${RetrofitClient.API_KEY}")
