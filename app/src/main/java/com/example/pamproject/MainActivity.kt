@@ -16,6 +16,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             PAMProjectTheme {
+
                 val navController = rememberNavController()
                 AppNavigation(
                     navController = navController,
