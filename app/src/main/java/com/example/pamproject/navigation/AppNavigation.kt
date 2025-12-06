@@ -51,7 +51,8 @@ fun AppNavigation(
                     navController.navigate(Screen.Session.createRoute(workoutId))
                 },
                 onDeleteLog = workoutViewModel::deleteLog,
-                onDeleteAllLogs = workoutViewModel::clearLogs
+                onDeleteAllLogs = workoutViewModel::clearLogs,
+                onRefresh = workoutViewModel::refreshFromServer
             )
         }
 

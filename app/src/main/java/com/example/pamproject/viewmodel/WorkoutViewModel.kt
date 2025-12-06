@@ -123,7 +123,7 @@ class WorkoutViewModel(private val repository: WorkoutRepository) : ViewModel() 
 
     fun getWorkoutById(id: Int): Workout? = workouts.find { it.id == id }
 
-    private fun refreshFromServer() {
+    fun refreshFromServer() {
         viewModelScope.launch {
             val remoteLogs = repository.fetchLogsWithRetrofit()
             if (remoteLogs.isNotEmpty()) {
