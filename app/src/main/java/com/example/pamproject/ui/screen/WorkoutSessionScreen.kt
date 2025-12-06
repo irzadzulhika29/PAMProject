@@ -38,6 +38,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -88,6 +89,7 @@ fun WorkoutSessionScreen(
     var showPhotoSection by remember { mutableStateOf(false) }
     var selectedImageUri by remember { mutableStateOf<String?>(null) }
     var cameraImageUri by remember { mutableStateOf<Uri?>(null) }
+    var isUploading by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
 
@@ -275,7 +277,9 @@ fun WorkoutSessionScreen(
                     Button(
                         onClick = {
                             scope.launch {
+                                isUploading = true
                                 val result = onFinish(selectedImageUri)
+                                isUploading = false
                                 result?.let {
                                     snackbarHostState.showSnackbar(
                                         message = "Durasi: ${"%.1f".format(it.durationMinutes)} menit · ${it.calories.toInt()} kcal"
@@ -291,19 +295,34 @@ fun WorkoutSessionScreen(
                             containerColor = MaterialTheme.colorScheme.primary,
                             contentColor = MaterialTheme.colorScheme.onPrimary
                         ),
-                        shape = RoundedCornerShape(14.dp)
+                        shape = RoundedCornerShape(14.dp),
+                        enabled = !isUploading
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = null,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = if (selectedImageUri != null) "Simpan dengan Foto" else "Simpan Tanpa Foto",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold
-                        )
+                        if (isUploading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                strokeWidth = 2.dp
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Menyimpan...",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = null,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = if (selectedImageUri != null) "Simpan dengan Foto" else "Simpan Tanpa Foto",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
                     }
 
                     // Tombol Simpan tanpa foto
@@ -311,7 +330,9 @@ fun WorkoutSessionScreen(
                         OutlinedButton(
                             onClick = {
                                 scope.launch {
+                                    isUploading = true
                                     val result = onFinish(null)
+                                    isUploading = false
                                     result?.let {
                                         snackbarHostState.showSnackbar(
                                             message = "Durasi: ${"%.1f".format(it.durationMinutes)} menit · ${it.calories.toInt()} kcal"
@@ -324,7 +345,8 @@ fun WorkoutSessionScreen(
                                 .fillMaxWidth()
                                 .height(56.dp),
                             shape = RoundedCornerShape(14.dp),
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                            enabled = !isUploading
                         ) {
                             Text(
                                 text = "Simpan Tanpa Foto",

@@ -32,6 +32,7 @@ fun AppNavigation(
     val weeklyProgress by workoutViewModel.weeklyProgress.collectAsState()
     val logs by workoutViewModel.logs.collectAsState()
     val timerState by workoutViewModel.timerState.collectAsState()
+    val isRefreshing by workoutViewModel.isRefreshing.collectAsState()
 
     NavHost(
         navController = navController,
@@ -44,6 +45,8 @@ fun AppNavigation(
                 progress = weeklyProgress,
                 workouts = workoutViewModel.workouts,
                 logs = logs,
+                isRefreshing = isRefreshing,
+                onRefresh = workoutViewModel::refreshLogs,
                 onWorkoutClick = { workoutId ->
                     workoutViewModel.startSession(workoutId)
                     navController.navigate(Screen.Session.createRoute(workoutId))

@@ -31,6 +31,9 @@ class WorkoutViewModel(private val repository: WorkoutRepository) : ViewModel() 
     private val _logs = MutableStateFlow(repository.loadLogs())
     val logs: StateFlow<List<WorkoutLog>> = _logs.asStateFlow()
 
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+
     val todayStats: StateFlow<DailyStats> = _logs
         .map { repository.calculateTodayStats(it) }
         .stateIn(
@@ -132,6 +135,25 @@ class WorkoutViewModel(private val repository: WorkoutRepository) : ViewModel() 
     fun clearLogs() {
         val updatedLogs = repository.clearLogs()
         _logs.value = updatedLogs
+    }
+
+    fun refreshLogs() {
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            val result = try {
+                repository.fetchLogsFromApi()
+            } catch (error: Exception) {
+                Result.failure(error)
+            }
+
+            result.onSuccess { remoteLogs ->
+                repository.saveLogs(remoteLogs)
+                _logs.value = remoteLogs
+            }.onFailure { error ->
+                println("Failed to refresh logs from Supabase: ${error.message}")
+            }
+            _isRefreshing.value = false
+        }
     }
 
     fun getWorkoutById(id: Int): Workout? = workouts.find { it.id == id }
